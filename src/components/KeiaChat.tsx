@@ -92,7 +92,7 @@ const KeiaChat: React.FC = () => {
     };
 
     return (
-        <div style={{ position: 'fixed', bottom: '115px', right: '20px', zIndex: 9999 }}>
+        <div style={{ position: 'fixed', bottom: '130px', right: '15px', zIndex: 9999 }}>
             {/* Bubble Button */}
             <button
                 onClick={() => setIsOpen(!isOpen)}
