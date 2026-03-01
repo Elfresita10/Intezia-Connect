@@ -60,8 +60,8 @@ export default function Login() {
 
             <div style={{ zIndex: 1, width: '100%', maxWidth: '420px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                 <div style={{ textAlign: 'center', marginBottom: '2.5rem', width: '100%' }}>
-                    <div style={{ margin: '0 auto 2.5rem', width: '100%', display: 'flex', justifyContent: 'center' }}>
-                        <img src={logo} alt="Logo" style={{ height: '6rem', width: 'auto', filter: 'drop-shadow(0 0 25px var(--accent-glow))' }} />
+                    <div style={{ margin: '0 auto 2.5rem', width: '100%', display: 'flex', justifyContent: 'center', padding: '0 1rem', boxSizing: 'border-box' }}>
+                        <img src={logo} alt="Logo" style={{ maxWidth: '100%', height: 'auto', maxHeight: '5.5rem', filter: 'drop-shadow(0 0 25px var(--accent-glow))' }} />
                     </div>
                     <h2 style={{ fontSize: '2.4rem', fontWeight: 800, color: '#fff', letterSpacing: '-0.025em', margin: '0.5rem 0 0', fontFamily: 'Outfit, sans-serif' }}>
                         Bienvenido
