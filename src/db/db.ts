@@ -121,13 +121,16 @@ export const initDB = async (): Promise<UnifiedDB> => {
           }
         };
 
-        // Initialize Schema on remote if needed (Turso won't error on IF NOT EXISTS)
+        // Initialize Schema on remote if needed
+        // REPAIR BLOCK: Forcing table recreation to fix email unique constraint issues
+        // await unifiedRemote.exec("DROP TABLE IF EXISTS users;"); 
+
         await unifiedRemote.exec(`
             CREATE TABLE IF NOT EXISTS profile (id INTEGER PRIMARY KEY, name TEXT, title TEXT, email TEXT, phone TEXT, bio TEXT);
             CREATE TABLE IF NOT EXISTS projects (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT, client TEXT, status TEXT, progress INTEGER, dueDate TEXT);
             CREATE TABLE IF NOT EXISTS project_tasks (id INTEGER PRIMARY KEY AUTOINCREMENT, project_id INTEGER, title TEXT, description TEXT, status TEXT, assigned_to TEXT, FOREIGN KEY (project_id) REFERENCES projects(id));
             CREATE TABLE IF NOT EXISTS education (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT, institution TEXT, year TEXT, type TEXT, status TEXT);
-            CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT UNIQUE, password TEXT, role TEXT, email TEXT UNIQUE, phone TEXT, bio TEXT, title TEXT, avatarBase64 TEXT);
+            CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, password TEXT, role TEXT, email TEXT UNIQUE, phone TEXT, bio TEXT, title TEXT, avatarBase64 TEXT);
             CREATE TABLE IF NOT EXISTS audit_logs (id INTEGER PRIMARY KEY AUTOINCREMENT, user_name TEXT, action TEXT, entity TEXT, details TEXT, timestamp DATETIME DEFAULT CURRENT_TIMESTAMP);
             CREATE TABLE IF NOT EXISTS fundamentals (id INTEGER PRIMARY KEY AUTOINCREMENT, type TEXT, category TEXT, title TEXT, description TEXT, url TEXT);
             CREATE TABLE IF NOT EXISTS course_modules (id INTEGER PRIMARY KEY AUTOINCREMENT, education_id INTEGER, title TEXT, video_url TEXT);
