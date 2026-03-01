@@ -9,9 +9,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
       manifest: {
-        name: 'App Consultores',
-        short_name: 'Consultores',
-        description: 'Plataforma para consultores de TI',
+        name: 'Intezia Connect',
+        short_name: 'Intezia',
+        description: 'Plataforma para consultores de Intezia',
         theme_color: '#0d1117',
         background_color: '#0d1117',
         display: 'standalone',
