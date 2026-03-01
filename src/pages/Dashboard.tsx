@@ -46,21 +46,21 @@ const Dashboard: React.FC = () => {
                 width: '100%',
                 maxWidth: '800px'
             }}>
-                <h2 className="text-truncate" style={{ fontSize: '2.4rem', marginBottom: '0.5rem', color: '#fff', fontWeight: 800, padding: '0 20px' }}>Hola, {user?.name.split(' ')[0] || 'Consultor'}</h2>
-                <p className="text-truncate" style={{ color: 'var(--accent)', fontWeight: 600, fontSize: '1.1rem', opacity: 0.9, marginBottom: '2.5rem', padding: '0 20px' }}>{user?.title || 'Consultor Intezia'}</p>
+                <h2 className="text-truncate" style={{ fontSize: '1.8rem', marginBottom: '0.2rem', color: '#fff', fontWeight: 800, padding: '0 10px', width: '100%' }}>Hola, {user?.name.split(' ')[0] || 'Consultor'}</h2>
+                <p className="text-truncate" style={{ color: 'var(--accent)', fontWeight: 600, fontSize: '0.95rem', opacity: 0.9, marginBottom: '2rem', padding: '0 10px', width: '100%' }}>{user?.title || 'Consultor Intezia'}</p>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '1rem', justifyContent: 'center', width: '100%' }}>
-                    <div style={{ background: 'var(--bg-color)', padding: '1.5rem', borderRadius: '20px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', boxShadow: '0 4px 15px rgba(0,0,0,0.2)' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
-                            <CheckCircle2 size={20} color="#3fb950" /> Proyectos
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.75rem', width: '100%' }}>
+                    <div className="glass-card" style={{ padding: '1.2rem 0.5rem', margin: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+                            <CheckCircle2 size={16} color="#3fb950" /> Proyectos
                         </div>
-                        <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: '#fff' }}>{stats.projects}</div>
+                        <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#fff' }}>{stats.projects}</div>
                     </div>
-                    <div style={{ background: 'var(--bg-color)', padding: '1.5rem', borderRadius: '20px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', boxShadow: '0 4px 15px rgba(0,0,0,0.2)' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
-                            <Trophy size={20} color="#d29922" /> Certificados
+                    <div className="glass-card" style={{ padding: '1.2rem 0.5rem', margin: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+                            <Trophy size={16} color="#d29922" /> Certificados
                         </div>
-                        <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: '#fff' }}>{stats.education}</div>
+                        <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#fff' }}>{stats.education}</div>
                     </div>
                 </div>
             </div>
