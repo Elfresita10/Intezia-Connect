@@ -7,6 +7,7 @@ import { getDb } from '../db/db';
 import KeiaChat from './KeiaChat';
 import { NotificationService } from '../utils/NotificationService';
 import { Bell, BellOff } from 'lucide-react';
+import logo from '../assets/images/logo_app.png';
 
 const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const location = useLocation();
@@ -87,7 +88,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         <div className="app-container">
             <header className="header mobile-header-only">
                 <div className="header-left">
-                    <img src="/src/assets/images/logo_app.png" alt="Logo" className="mobile-logo" />
+                    <img src={logo} alt="Logo" className="mobile-logo" />
                     <div className="title-divider" />
                     <div className="header-titles">
                         <h1>{getPageTitle(location.pathname)}</h1>
@@ -118,7 +119,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
             <nav className="bottom-nav">
                 <div className="sidebar-logo desktop-only">
-                    <img src="/src/assets/images/logo_app.png" alt="Logo" />
+                    <img src={logo} alt="Logo" />
                 </div>
 
                 <NavLink to="/dashboard" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
