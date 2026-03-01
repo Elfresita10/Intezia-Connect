@@ -80,7 +80,6 @@ const Projects: React.FC = () => {
                 });
                 await logAction(user?.name || 'Desconocido', 'Creó', 'Proyecto', `Creó el proyecto: ${formData.title}`);
 
-                // Trigger local notification
                 NotificationService.sendLocalNotification('Nuevo Proyecto Creado', {
                     body: `Se ha registrado el proyecto: ${formData.title}`,
                     tag: 'new-project'
@@ -93,8 +92,8 @@ const Projects: React.FC = () => {
 
     return (
         <div className="animate-fade-in relative">
-            <div className="flex flex-wrap space-between align-center mb-2" style={{ gap: '15px' }}>
-                <h2 className="section-title" style={{ margin: 0, whiteSpace: 'nowrap' }}>Mis Proyectos</h2>
+            <div className="flex flex-wrap space-between align-center mb-2" style={{ gap: '12px' }}>
+                <h2 className="section-title text-truncate" style={{ margin: 0, flex: 1, minWidth: '150px' }}>Mis Proyectos</h2>
                 {canCreate(user?.role) && (
                     <button className="btn" onClick={handleOpenCreate} style={{ padding: '8px 16px', fontSize: '0.85rem' }}>
                         <Plus size={16} /> Nuevo Proyecto
@@ -107,52 +106,54 @@ const Projects: React.FC = () => {
                     <div
                         key={proj.id}
                         className="glass-card"
-                        style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem', position: 'relative', cursor: 'pointer', padding: '20px' }}
+                        style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', cursor: 'pointer', padding: '16px' }}
                         onClick={() => navigate(`/projects/${proj.id}`)}
                     >
-                        <div style={{ width: 48, height: 48, borderRadius: '16px', background: 'rgba(255,215,0,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: '1px solid rgba(255,215,0,0.2)' }}>
-                            <Briefcase size={24} color="var(--accent)" />
-                        </div>
-                        <div style={{ flex: 1 }}>
-                            <h3 style={{ fontSize: '1.05rem', margin: 0, color: '#fff', marginBottom: '4px' }}>{proj.title}</h3>
-                            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>{proj.client}</p>
-
-                            <div className="flex align-center gap-2" style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                                <Calendar size={12} /> {proj.dueDate}
+                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem', width: '100%' }}>
+                            <div style={{ width: 48, height: 48, borderRadius: '16px', background: 'rgba(255,215,0,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: '1px solid rgba(255,215,0,0.2)' }}>
+                                <Briefcase size={24} color="var(--accent)" />
                             </div>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                                <h3 className="text-truncate" style={{ fontSize: '1.05rem', margin: 0, color: '#fff', marginBottom: '4px' }}>{proj.title}</h3>
+                                <p className="text-truncate" style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>{proj.client}</p>
 
-                            {proj.status === 'En Progreso' && (
-                                <div style={{ marginTop: '12px' }}>
-                                    <div className="flex space-between mb-1" style={{ fontSize: '0.75rem' }}>
-                                        <span style={{ color: 'var(--text-secondary)' }}>Progreso</span>
-                                        <span style={{ color: 'var(--accent)', fontWeight: 'bold' }}>{proj.progress}%</span>
-                                    </div>
-                                    <div className="progress-container">
-                                        <div className="progress-bar" style={{ width: `${proj.progress}%` }}></div>
-                                    </div>
+                                <div className="flex align-center gap-2" style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                                    <Calendar size={12} /> {proj.dueDate}
                                 </div>
-                            )}
-                            {proj.status === 'Completado' && (
-                                <div style={{ marginTop: '12px' }}>
-                                    <span className="badge success">Completado</span>
-                                </div>
-                            )}
+
+                                {proj.status === 'En Progreso' && (
+                                    <div style={{ marginTop: '12px' }}>
+                                        <div className="flex space-between mb-1" style={{ fontSize: '0.75rem' }}>
+                                            <span style={{ color: 'var(--text-secondary)' }}>Progreso</span>
+                                            <span style={{ color: 'var(--accent)', fontWeight: 'bold' }}>{proj.progress}%</span>
+                                        </div>
+                                        <div className="progress-container">
+                                            <div className="progress-bar" style={{ width: `${proj.progress}%` }}></div>
+                                        </div>
+                                    </div>
+                                )}
+                                {proj.status === 'Completado' && (
+                                    <div style={{ marginTop: '12px' }}>
+                                        <span className="badge success">Completado</span>
+                                    </div>
+                                )}
+                            </div>
                         </div>
 
-                        <div style={{ position: 'absolute', right: '1rem', top: '1rem', display: 'flex', gap: '8px' }}>
+                        <div style={{ display: 'flex', gap: '12px', borderTop: '1px solid var(--border-color)', paddingTop: '12px', marginTop: '4px', justifyContent: 'flex-end', width: '100%' }}>
                             {canEdit(user?.role) && (
-                                <button onClick={(e) => { e.stopPropagation(); handleOpenEdit(proj); }} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '4px', color: 'var(--text-primary)', cursor: 'pointer', padding: '0.4rem' }} title="Editar">
-                                    <Edit2 size={16} />
+                                <button onClick={(e) => { e.stopPropagation(); handleOpenEdit(proj); }} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-primary)', cursor: 'pointer', padding: '0.5rem 1rem', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem' }} title="Editar">
+                                    <Edit2 size={14} /> Editar
                                 </button>
                             )}
                             {canDelete(user?.role) && (
-                                <button onClick={(e) => { e.stopPropagation(); handleDelete(proj.id, proj.title); }} style={{ background: 'rgba(220,53,69,0.1)', border: 'none', borderRadius: '4px', color: '#ff6b6b', cursor: 'pointer', padding: '0.4rem' }} title="Eliminar">
-                                    <Trash2 size={16} />
+                                <button onClick={(e) => { e.stopPropagation(); handleDelete(proj.id, proj.title); }} style={{ background: 'rgba(220,53,69,0.05)', border: '1px solid rgba(220,53,69,0.2)', borderRadius: '8px', color: '#ff6b6b', cursor: 'pointer', padding: '0.5rem 1rem', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem' }} title="Eliminar">
+                                    <Trash2 size={14} /> Eliminar
                                 </button>
                             )}
-                            <button style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '0.4rem' }}>
-                                <ChevronRight size={20} />
-                            </button>
+                            <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', color: 'var(--accent)', fontSize: '0.75rem', fontWeight: 'bold' }}>
+                                Detalles <ChevronRight size={16} />
+                            </div>
                         </div>
                     </div>
                 ))}
@@ -161,14 +162,13 @@ const Projects: React.FC = () => {
 
             {isModalOpen && (
                 <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)' }}>
-                    <div className="glass-card fade-in" style={{ width: '100%', maxWidth: '450px', position: 'relative', background: '#121212', padding: '30px' }}>
+                    <div className="glass-card fade-in" style={{ width: '100%', maxWidth: '450px', position: 'relative', background: '#121212', padding: '30px', maxHeight: '90vh', overflowY: 'auto' }}>
                         <button onClick={() => setIsModalOpen(false)} style={{ position: 'absolute', top: '20px', right: '20px', background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', opacity: 0.6 }}>
                             <X size={28} />
                         </button>
                         <h3 style={{ margin: '0 0 20px', color: '#fff', fontSize: '1.5rem', fontWeight: 700 }}>{editingProject ? 'Editar Proyecto' : 'Nuevo Proyecto'}</h3>
 
                         <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                            {/* Los consultores no pueden editar el título ni el cliente ni la fecha */}
                             {user?.role !== 'Consultor' ? (
                                 <>
                                     <div>
