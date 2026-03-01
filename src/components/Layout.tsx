@@ -7,7 +7,7 @@ import { getDb } from '../db/db';
 import KeiaChat from './KeiaChat';
 import { NotificationService } from '../utils/NotificationService';
 import { Bell, BellOff } from 'lucide-react';
-import logo from '../assets/images/logo_app.png';
+import logo from '../assets/images/logo-app.png';
 
 const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const location = useLocation();
