@@ -102,34 +102,35 @@ const UsersManagement: React.FC = () => {
 
     return (
         <div className="animate-fade-in">
-            <div className="flex flex-wrap space-between align-center mb-2" style={{ gap: '12px' }}>
-                <div style={{ position: 'relative', flex: '1 1 200px', maxWidth: '100%' }}>
-                    <Search style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.4)', pointerEvents: 'none' }} size={18} />
+            <div className="flex-wrap align-center mb-2" style={{ gap: '8px', marginBottom: '20px' }}>
+                <div style={{ position: 'relative', flex: '1', minWidth: '150px' }}>
+                    <Search style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.3)', pointerEvents: 'none' }} size={16} />
                     <input
                         type="text"
-                        placeholder="Buscar consultor..."
+                        placeholder="Buscar..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="text-truncate"
                         style={{
                             width: '100%',
-                            padding: '12px 12px 12px 40px',
+                            padding: '10px 10px 10px 34px',
                             background: 'rgba(255,255,255,0.05)',
                             border: '1px solid var(--border-color)',
-                            borderRadius: '12px',
+                            borderRadius: '10px',
                             color: '#fff',
                             outline: 'none',
-                            boxSizing: 'border-box'
+                            boxSizing: 'border-box',
+                            fontSize: '0.9rem'
                         }}
                     />
                 </div>
                 <button
                     onClick={() => setIsModalOpen(true)}
                     className="btn"
-                    style={{ flexShrink: 0 }}
+                    style={{ flexShrink: 0, padding: '10px 16px' }}
                 >
-                    <UserPlus size={18} />
-                    Nuevo
+                    <UserPlus size={16} />
+                    <span>Nuevo</span>
                 </button>
             </div>
 
