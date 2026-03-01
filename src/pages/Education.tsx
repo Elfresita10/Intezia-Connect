@@ -103,8 +103,8 @@ const Education: React.FC = () => {
 
     return (
         <div className="animate-fade-in relative">
-            <div className="flex flex-wrap space-between align-center mb-2" style={{ gap: '15px' }}>
-                <h2 className="section-title" style={{ margin: 0, whiteSpace: 'nowrap' }}>Formación</h2>
+            <div className="flex flex-wrap space-between align-center mb-2" style={{ gap: '12px' }}>
+                <h2 className="section-title text-truncate" style={{ margin: 0, flex: 1, minWidth: '150px' }}>Formación</h2>
                 {canCreate(user?.role) && (
                     <button onClick={handleOpenCreate} className="btn" style={{ padding: '8px 16px', fontSize: '0.85rem' }}>
                         <Plus size={16} /> Nueva
@@ -113,8 +113,8 @@ const Education: React.FC = () => {
             </div>
 
             {/* Top Summary Cards */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
-                <div className="glass-card stat-card" style={{ margin: 0, borderTop: '4px solid #fff' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
+                <div className="glass-card stat-card" style={{ margin: 0, borderTop: '4px solid #fff', padding: '15px' }}>
                     <h4 className="stat-label">Realizadas</h4>
                     <span className="stat-value">{countRealizadas}</span>
                 </div>
@@ -141,9 +141,9 @@ const Education: React.FC = () => {
 
                 return (
                     <div key={statusGroup} style={{ marginBottom: '2.5rem' }}>
-                        <h3 style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: getDotColor() }}></div>
-                            Capacitaciones {statusGroup === 'Disponible' ? 'Disponibles' : statusGroup === 'En Progreso' ? 'En Progreso' : 'Realizadas'}
+                        <h3 className="text-truncate" style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1.1rem' }}>
+                            <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: getDotColor(), flexShrink: 0 }}></div>
+                            {statusGroup === 'Disponible' ? 'Disponibles' : statusGroup === 'En Progreso' ? 'En Progreso' : 'Realizadas'}
                         </h3>
                         <div style={{ position: 'relative', paddingLeft: '24px', paddingTop: '8px' }}>
                             <div style={{ position: 'absolute', left: '11px', top: '0', bottom: '0', width: '2px', background: 'var(--border-color)' }}></div>
@@ -152,7 +152,10 @@ const Education: React.FC = () => {
                                 <div key={edu.id} style={{ position: 'relative', marginBottom: '2rem' }}>
                                     <div style={{ position: 'absolute', left: '-29px', top: '4px', width: '12px', height: '12px', borderRadius: '50%', background: getDotColor(), border: '2px solid var(--bg-color)' }}></div>
 
-                                    <div className="glass-card" style={{ margin: 0, padding: '20px' }}>
+                                    <div
+                                        className="glass-card"
+                                        style={{ marginBottom: '1rem', padding: '16px', position: 'relative', borderLeft: '4px solid var(--accent)' }}
+                                    >
                                         <div className="flex space-between align-center mb-1">
                                             <span className="badge">
                                                 {edu.type}
@@ -175,12 +178,12 @@ const Education: React.FC = () => {
                                             </div>
                                         </div>
 
-                                        <h3 style={{ fontSize: '1.1rem', margin: '0.5rem 0', color: '#fff', display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
-                                            {edu.type === 'Certificación' ? <Award size={18} style={{ flexShrink: 0, marginTop: '2px', color: '#d29922' }} /> : <BookOpen size={18} style={{ flexShrink: 0, marginTop: '2px', color: 'var(--accent)' }} />}
-                                            {edu.title}
+                                        <h3 className="text-truncate" style={{ fontSize: '1.1rem', margin: '0.5rem 0', color: '#fff', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            {edu.type === 'Certificación' ? <Award size={18} style={{ flexShrink: 0, color: '#d29922' }} /> : <BookOpen size={18} style={{ flexShrink: 0, color: 'var(--accent)' }} />}
+                                            <span className="text-truncate">{edu.title}</span>
                                         </h3>
 
-                                        <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '1rem' }}>{edu.institution}</p>
+                                        <p className="text-truncate" style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '1rem' }}>{edu.institution}</p>
 
                                         <button onClick={() => navigate(`/education/${edu.id}`)} className="btn" style={{ padding: '0.5rem 1rem', background: 'transparent', border: '1px solid var(--border-color)', color: 'var(--text-primary)', boxShadow: 'none', width: '100%', justifyContent: 'center', gap: '8px' }}>
                                             {statusGroup === 'Disponible' ? 'Empezar Capacitación' :
