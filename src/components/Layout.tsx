@@ -86,6 +86,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
     return (
         <div className="app-container">
+            {/* --- MOBILE VIEW COMPONENTS --- */}
             <header className="header mobile-header-only">
                 <div className="header-left">
                     <img src={logo} alt="Logo" className="mobile-logo" style={{ height: '24px', width: 'auto' }} />
@@ -113,76 +114,119 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                 </div>
             </header>
 
-            <main className="page-content">
-                {children}
-            </main>
-
-            <nav className="bottom-nav">
-                <div className="sidebar-logo desktop-only">
-                    <img src={logo} alt="Logo" />
-                </div>
-
-                <NavLink to="/dashboard" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
-                    <Home size={24} />
+            <nav className="mobile-bottom-nav">
+                <NavLink to="/dashboard" className={({ isActive }) => `mobile-nav-item ${isActive ? 'active' : ''}`}>
+                    <Home size={22} />
                     <span>Inicio</span>
                 </NavLink>
-                <NavLink to="/profile" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
-                    <UserIcon size={24} />
+                <NavLink to="/profile" className={({ isActive }) => `mobile-nav-item ${isActive ? 'active' : ''}`}>
+                    <UserIcon size={22} />
                     <span>Perfil</span>
                 </NavLink>
-                <NavLink to="/projects" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} style={{ position: 'relative' }}>
-                    <Briefcase size={24} />
+                <NavLink to="/projects" className={({ isActive }) => `mobile-nav-item ${isActive ? 'active' : ''}`} style={{ position: 'relative' }}>
+                    <Briefcase size={22} />
                     <span>Proyectos</span>
                     {(pendingReviewCount > 0 && isSupervisor) && (
                         <span className="badge-notification">{pendingReviewCount}</span>
                     )}
                 </NavLink>
-                <NavLink to="/education" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
-                    <GraduationCap size={24} />
-                    <span>Educación</span>
+                <NavLink to="/education" className={({ isActive }) => `mobile-nav-item ${isActive ? 'active' : ''}`}>
+                    <GraduationCap size={22} />
+                    <span>Educa</span>
                 </NavLink>
-                <NavLink to="/fundamentals" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
-                    <Book size={24} />
-                    <span>Fundamentos</span>
+                <NavLink to="/fundamentals" className={({ isActive }) => `mobile-nav-item ${isActive ? 'active' : ''}`}>
+                    <Book size={22} />
+                    <span>Funda</span>
                 </NavLink>
                 {user?.role === 'Super admin' && (
-                    <NavLink to="/users" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
-                        <Users size={24} />
-                        <span>Usuarios</span>
+                    <NavLink to="/users" className={({ isActive }) => `mobile-nav-item ${isActive ? 'active' : ''}`}>
+                        <Users size={22} />
+                        <span>Users</span>
                     </NavLink>
                 )}
                 {canViewAuditLog(user?.role) && (
-                    <NavLink to="/audit-log" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
-                        <History size={24} />
-                        <span>Bitácora</span>
+                    <NavLink to="/audit-log" className={({ isActive }) => `mobile-nav-item ${isActive ? 'active' : ''}`}>
+                        <History size={22} />
+                        <span>Logs</span>
                     </NavLink>
                 )}
+            </nav>
 
-                <div className="sidebar-user desktop-only">
-                    <div className="header-left">
+            {/* --- DESKTOP VIEW COMPONENTS --- */}
+            <aside className="desktop-sidebar">
+                <div className="sidebar-logo">
+                    <img src={logo} alt="Logo" />
+                </div>
+
+                <div className="sidebar-nav">
+                    <NavLink to="/dashboard" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
+                        <Home size={20} />
+                        <span>Inicio</span>
+                    </NavLink>
+                    <NavLink to="/profile" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
+                        <UserIcon size={20} />
+                        <span>Mi Perfil</span>
+                    </NavLink>
+                    <NavLink to="/projects" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`} style={{ position: 'relative' }}>
+                        <Briefcase size={20} />
+                        <span>Proyectos</span>
+                        {(pendingReviewCount > 0 && isSupervisor) && (
+                            <span className="badge-notification">{pendingReviewCount}</span>
+                        )}
+                    </NavLink>
+                    <NavLink to="/education" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
+                        <GraduationCap size={20} />
+                        <span>Educación</span>
+                    </NavLink>
+                    <NavLink to="/fundamentals" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
+                        <Book size={20} />
+                        <span>Fundamentos Intezia</span>
+                    </NavLink>
+                    {user?.role === 'Super admin' && (
+                        <NavLink to="/users" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
+                            <Users size={20} />
+                            <span>Gestión de Usuarios</span>
+                        </NavLink>
+                    )}
+                    {canViewAuditLog(user?.role) && (
+                        <NavLink to="/audit-log" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
+                            <History size={20} />
+                            <span>Bitácora Auditoría</span>
+                        </NavLink>
+                    )}
+                </div>
+
+                <div className="sidebar-user">
+                    <div className="user-profile-info">
                         <div className="user-avatar" style={{ background: user?.avatarBase64 ? `url(${user.avatarBase64}) center/cover` : 'linear-gradient(135deg, var(--accent), #fff)' }}>
                             {!user?.avatarBase64 && (user ? user.name.substring(0, 2).toUpperCase() : 'CJ')}
                         </div>
-                        <div className="header-titles">
-                            <span className="user-name-sidebar">{user?.name}</span>
-                            <span className="user-role">{user?.role}</span>
+                        <div className="user-details">
+                            <span className="user-name">{user?.name}</span>
+                            <span className="user-role-label">{user?.role}</span>
                         </div>
                     </div>
-                    <div style={{ display: 'flex', gap: '8px' }}>
+                    <div className="sidebar-actions">
                         <button
                             onClick={handleRequestNotifs}
-                            className="logout-btn"
-                            style={{ background: notifPermission === 'granted' ? 'rgba(255,215,0,0.1)' : 'rgba(255,255,255,0.05)', color: notifPermission === 'granted' ? 'var(--accent)' : '#fff' }}
+                            className="mini-action-btn"
                             title={notifPermission === 'granted' ? "Notificaciones activas" : "Activar notificaciones"}
                         >
-                            {notifPermission === 'granted' ? <Bell size={16} /> : <BellOff size={16} />}
+                            {notifPermission === 'granted' ? <Bell size={14} color="var(--accent)" /> : <BellOff size={14} />}
                         </button>
-                        <button onClick={handleLogout} className="logout-btn" title="Cerrar sesión">
-                            <LogOut size={16} />
+                        <button onClick={handleLogout} className="mini-action-btn" title="Cerrar sesión">
+                            <LogOut size={14} />
                         </button>
                     </div>
                 </div>
-            </nav>
+            </aside>
+
+            <main className="page-content">
+                <div className="content-inner">
+                    {children}
+                </div>
+            </main>
+
             <KeiaChat />
         </div>
     );
