@@ -88,7 +88,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         <div className="app-container">
             <header className="header mobile-header-only">
                 <div className="header-left">
-                    <img src={logo} alt="Logo" className="mobile-logo" />
+                    <img src={logo} alt="Logo" className="mobile-logo" style={{ height: '24px', width: 'auto' }} />
                     <div className="title-divider" />
                     <div className="header-titles">
                         <h1>{getPageTitle(location.pathname)}</h1>
