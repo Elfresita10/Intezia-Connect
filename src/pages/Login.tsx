@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import logo from '../assets/images/logo_app.png';
+import logo from '../assets/images/logo-app.png';
 import { User as UserIcon, LogIn, Lock } from 'lucide-react';
 
 export default function Login() {
