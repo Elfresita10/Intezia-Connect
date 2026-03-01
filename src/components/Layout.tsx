@@ -76,7 +76,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         if (path.includes('fundamentals')) return 'Fundamentos';
         if (path.includes('users')) return 'Gestión de Usuarios';
         if (path.includes('audit-log')) return 'Bitácora';
-        return 'App Consultores';
+        return 'Intezia Connect';
     };
 
     const handleLogout = () => {
