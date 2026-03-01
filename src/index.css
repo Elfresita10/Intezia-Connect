@@ -62,18 +62,19 @@ body {
 
 @media (min-width: 768px) {
   .app-container {
+    display: flex !important;
+    flex-direction: row !important;
     max-width: 100% !important;
-    flex-direction: row;
-    box-shadow: none;
-    border: none;
+    height: 100vh;
+    overflow: hidden;
   }
 }
 
-/* Liquid Glass Header */
+/* MOBILE VIEW (Header \u0026 Navigation) */
 .header {
   height: calc(var(--header-height) + var(--safe-top));
   padding-top: var(--safe-top);
-  display: flex;
+  display: flex !important;
   align-items: center;
   justify-content: space-between;
   padding-left: var(--page-margin);
@@ -131,13 +132,12 @@ body {
   gap: 12px;
 }
 
-/* Floating Pill Navigation (iOS Style) */
-.bottom-nav {
+.mobile-bottom-nav {
   position: fixed;
   bottom: calc(15px + var(--safe-bottom));
   left: 50%;
   transform: translateX(-50%);
-  width: 96%;
+  width: 94%;
   max-width: 500px;
   height: 65px;
   background: rgba(18, 18, 18, 0.9);
@@ -149,50 +149,35 @@ body {
   grid-template-columns: repeat(7, 1fr);
   align-items: center;
   padding: 0 10px;
-  z-index: 1010;
+  z-index: 2000;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
 }
 
-.bottom-nav::after {
-  display: none;
-  /* Remove old indicator */
-}
-
-.nav-item {
+.mobile-nav-item {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  color: rgba(255, 255, 255, 0.4);
   text-decoration: none;
+  color: var(--text-secondary);
+  gap: 4px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  height: 100%;
+}
+
+.mobile-nav-item span {
   font-size: 0.55rem;
   font-weight: 500;
-  gap: 2px;
-  transition: all 0.3s ease;
-  height: 55px;
-  width: 100%;
-  border-radius: 12px;
-  position: relative;
-  overflow: hidden;
 }
 
-.nav-item svg {
-  transition: transform 0.3s ease;
-}
-
-.nav-item.active {
+.mobile-nav-item.active {
   color: var(--accent);
-  background: rgba(255, 255, 255, 0.1);
-  /* The pill highlight */
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
 }
 
-.nav-item.active svg {
+.mobile-nav-item.active svg {
   transform: scale(1.1);
   filter: drop-shadow(0 0 8px var(--accent-glow));
 }
-
-/* Removed old indicator line */
 
 /* Cards & Containers */
 .glass-card {
@@ -370,103 +355,143 @@ tr td:last-child {
 
 /* Desktop Fix */
 @media (min-width: 768px) {
-  .desktop-only {
-    display: flex !important;
-  }
 
-  .mobile-header-only {
+  .mobile-header-only,
+  .mobile-bottom-nav {
     display: none !important;
   }
 
-  .app-container {
-    max-width: 100%;
-    display: grid;
-    grid-template-columns: 280px 1fr;
-    grid-template-areas: "nav main";
-  }
-
-  .bottom-nav {
-    grid-area: nav;
-    position: fixed;
-    top: 0;
-    left: 0;
-    bottom: 0;
-    transform: none;
+  .desktop-sidebar {
     width: 280px;
     height: 100vh;
+    background: #0a0a0a;
+    border-right: 1px solid rgba(255, 255, 255, 0.05);
     display: flex !important;
     flex-direction: column;
-    justify-content: flex-start;
     padding: 40px 20px;
-    background: var(--bg-surface-glass);
-    backdrop-filter: var(--glass-blur);
-    border-right: 1px solid var(--border-color);
-    border-radius: 0;
-    box-shadow: none;
-    gap: 8px;
+    flex-shrink: 0;
     z-index: 1000;
   }
 
-  .nav-item {
-    width: 100%;
-    height: auto;
-    flex-direction: row;
-    padding: 14px 20px;
-    font-size: 0.95rem;
-    gap: 14px;
-    border-radius: 12px;
-    justify-content: flex-start;
-    background: transparent;
-    color: var(--text-secondary);
-  }
-
   .sidebar-logo {
-    padding: 0 10px 30px;
-    width: 100%;
-    border-bottom: 1px solid var(--border-color);
-    margin-bottom: 20px;
-    display: flex;
+    margin-bottom: 40px;
+    padding: 0 10px;
   }
 
   .sidebar-logo img {
-    height: 38px;
+    height: 32px;
     width: auto;
+  }
+
+  .sidebar-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex-grow: 1;
+  }
+
+  .sidebar-link {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    border-radius: 12px;
+    color: #a0a0a0;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    font-size: 0.95rem;
+    font-weight: 500;
+  }
+
+  .sidebar-link:hover {
+    background: rgba(255, 255, 255, 0.03);
+    color: #fff;
+  }
+
+  .sidebar-link.active {
+    background: rgba(255, 215, 0, 0.08);
+    color: var(--accent);
+    font-weight: 600;
   }
 
   .sidebar-user {
     margin-top: auto;
     padding: 20px 10px 0;
-    border-top: 1px solid var(--border-color);
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    width: 100%;
+    flex-direction: column;
+    gap: 15px;
   }
 
-  .user-name-sidebar {
+  .user-profile-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .user-details {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .user-name {
     font-weight: 600;
     font-size: 0.9rem;
     color: #fff;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 120px;
   }
 
-  .nav-item.active {
-    background: rgba(255, 215, 0, 0.08);
-    color: var(--accent);
+  .user-role-label {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.4);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .sidebar-actions {
+    display: flex;
+    gap: 8px;
+  }
+
+  .mini-action-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    color: #a0a0a0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .mini-action-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+    transform: translateY(-2px);
   }
 
   .page-content {
-    grid-area: main;
-    padding: 40px 60px;
-    margin-left: 280px;
-    max-width: none;
-    width: auto;
-    box-sizing: border-box;
-    overflow-y: auto;
-    height: 100vh;
+    flex-grow: 1 !important;
+    height: 100vh !important;
+    overflow-y: auto !important;
+    background: #000 !important;
+    position: relative;
+    padding: 0 !important;
+    margin-left: 0 !important;
+    /* No margin because of flex layout */
+  }
+
+  .content-inner {
+    padding: 60px;
+    max-width: 1400px;
+    margin: 0 auto;
+    width: 100%;
   }
 }
 
