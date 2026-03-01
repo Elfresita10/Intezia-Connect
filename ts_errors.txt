@@ -1,0 +1,3 @@
+src/db/db.ts(43,45): error TS2554: Expected 0 arguments, but got 1.
+src/main.tsx(1,1): error TS6133: 'React' is declared but its value is never read.
+src/pages/Dashboard.tsx(2,10): error TS6133: 'ArrowRight' is declared but its value is never read.
