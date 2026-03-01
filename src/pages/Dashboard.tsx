@@ -35,7 +35,7 @@ const Dashboard: React.FC = () => {
     }, []);
 
     return (
-        <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
+        <div className="animate-fade-in" style={{ width: '100%' }}>
             <div className="glass-card" style={{
                 background: 'linear-gradient(135deg, rgba(255,215,0,0.05) 0%, rgba(0,0,0,0.9) 100%)',
                 border: '1px solid rgba(255,215,0,0.1)',
@@ -49,7 +49,7 @@ const Dashboard: React.FC = () => {
                 <h2 className="text-truncate" style={{ fontSize: '2.4rem', marginBottom: '0.5rem', color: '#fff', fontWeight: 800, padding: '0 20px' }}>Hola, {user?.name.split(' ')[0] || 'Consultor'}</h2>
                 <p className="text-truncate" style={{ color: 'var(--accent)', fontWeight: 600, fontSize: '1.1rem', opacity: 0.9, marginBottom: '2.5rem', padding: '0 20px' }}>{user?.title || 'Consultor Intezia'}</p>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1.5rem', justifyContent: 'center', width: '100%' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '1rem', justifyContent: 'center', width: '100%' }}>
                     <div style={{ background: 'var(--bg-color)', padding: '1.5rem', borderRadius: '20px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', boxShadow: '0 4px 15px rgba(0,0,0,0.2)' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
                             <CheckCircle2 size={20} color="#3fb950" /> Proyectos
