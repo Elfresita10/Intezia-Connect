@@ -102,106 +102,94 @@ const UsersManagement: React.FC = () => {
 
     return (
         <div className="animate-fade-in">
-            <div className="flex flex-wrap space-between align-center mb-2" style={{ gap: '15px', marginBottom: '24px' }}>
-                <div style={{ position: 'relative', flex: '1 1 300px', maxWidth: '400px' }}>
-                    <Search style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.4)' }} size={18} />
+            <div className="flex flex-wrap space-between align-center mb-2" style={{ gap: '12px' }}>
+                <div style={{ position: 'relative', flex: '1 1 200px', maxWidth: '100%' }}>
+                    <Search style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.4)', pointerEvents: 'none' }} size={18} />
                     <input
                         type="text"
-                        placeholder="Buscar por nombre o correo..."
+                        placeholder="Buscar consultor..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
+                        className="text-truncate"
                         style={{
                             width: '100%',
-                            padding: '10px 10px 10px 40px',
+                            padding: '12px 12px 12px 40px',
                             background: 'rgba(255,255,255,0.05)',
-                            border: '1px solid rgba(255,255,255,0.1)',
+                            border: '1px solid var(--border-color)',
                             borderRadius: '12px',
                             color: '#fff',
-                            outline: 'none'
+                            outline: 'none',
+                            boxSizing: 'border-box'
                         }}
                     />
                 </div>
                 <button
                     onClick={() => setIsModalOpen(true)}
                     className="btn"
+                    style={{ flexShrink: 0 }}
                 >
                     <UserPlus size={18} />
-                    Nuevo Consultor
+                    Nuevo
                 </button>
             </div>
 
-            <div className="glass-card" style={{ padding: 0, overflow: 'hidden' }}>
-                <div style={{ overflowX: 'auto' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                        <thead style={{ background: 'rgba(255,255,255,0.05)', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-                            <tr>
-                                <th style={{ padding: '16px' }}>Nombre</th>
-                                <th style={{ padding: '16px' }}>Email / Rol</th>
-                                <th style={{ padding: '16px' }}>Cargo</th>
-                                <th style={{ padding: '16px', textAlign: 'right' }}>Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {isLoading ? (
-                                <tr>
-                                    <td colSpan={4} style={{ padding: '40px', textAlign: 'center', opacity: 0.5 }}>Cargando usuarios...</td>
-                                </tr>
-                            ) : filteredUsers.length === 0 ? (
-                                <tr>
-                                    <td colSpan={4} style={{ padding: '40px', textAlign: 'center', opacity: 0.5 }}>No se encontraron usuarios.</td>
-                                </tr>
-                            ) : filteredUsers.map(u => (
-                                <tr key={u.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', transition: 'background 0.2s' }}>
-                                    <td style={{ padding: '16px' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                            <div style={{
-                                                width: 36,
-                                                height: 36,
-                                                borderRadius: '50%',
-                                                background: u.avatarBase64 ? `url(${u.avatarBase64}) center/cover` : 'linear-gradient(135deg, var(--accent), #fff)',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                fontSize: '14px',
-                                                fontWeight: 'bold',
-                                                color: '#fff'
-                                            }}>
-                                                {!u.avatarBase64 && u.name.substring(0, 2).toUpperCase()}
-                                            </div>
-                                            <span style={{ fontWeight: 500 }}>{u.name}</span>
-                                        </div>
-                                    </td>
-                                    <td style={{ padding: '16px' }}>
-                                        <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                            <span style={{ fontSize: '0.85rem', opacity: 0.7 }}>{u.email}</span>
-                                            <span className="badge">
-                                                {u.role}
-                                            </span>
-                                        </div>
-                                    </td>
-                                    <td style={{ padding: '16px', opacity: 0.8 }}>{u.title || '-'}</td>
-                                    <td style={{ padding: '16px', textAlign: 'right' }}>
-                                        <button
-                                            onClick={() => handleDeleteUser(u.id, u.name)}
-                                            style={{
-                                                background: 'rgba(231, 76, 60, 0.1)',
-                                                border: 'none',
-                                                borderRadius: '8px',
-                                                padding: '8px',
-                                                color: '#e74c3c',
-                                                cursor: 'pointer',
-                                                transition: 'background 0.2s'
-                                            }}
-                                            title="Eliminar usuario"
-                                        >
-                                            <Trash2 size={18} />
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                {isLoading ? (
+                    <div style={{ padding: '40px', textAlign: 'center', opacity: 0.5 }}>Cargando usuarios...</div>
+                ) : filteredUsers.length === 0 ? (
+                    <div style={{ padding: '40px', textAlign: 'center', opacity: 0.5 }}>No se encontraron usuarios.</div>
+                ) : filteredUsers.map(u => (
+                    <div
+                        key={u.id}
+                        className="glass-card"
+                        style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: '1rem', borderBottom: '1px solid var(--border-color)' }}
+                    >
+                        <div style={{
+                            width: 50,
+                            height: 50,
+                            borderRadius: '50%',
+                            background: u.avatarBase64 ? `url(${u.avatarBase64}) center/cover` : 'linear-gradient(135deg, var(--accent), #fff)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '18px',
+                            fontWeight: 'bold',
+                            color: '#000',
+                            flexShrink: 0,
+                            border: '2px solid rgba(255,255,255,0.1)'
+                        }}>
+                            {!u.avatarBase64 && u.name.substring(0, 2).toUpperCase()}
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                            <div className="flex align-center gap-2 mb-1">
+                                <h3 className="text-truncate" style={{ margin: 0, fontSize: '1.05rem', color: '#fff' }}>{u.name}</h3>
+                                <span className="badge" style={{ fontSize: '0.65rem' }}>{u.role}</span>
+                            </div>
+                            <p className="text-truncate" style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: 0 }}>{u.email}</p>
+                            <p className="text-truncate" style={{ fontSize: '0.75rem', opacity: 0.6, marginTop: '4px' }}>{u.title || 'Consultor Intezia'}</p>
+                        </div>
+                        <div style={{ flexShrink: 0 }}>
+                            <button
+                                onClick={() => handleDeleteUser(u.id, u.name)}
+                                style={{
+                                    background: 'rgba(231, 76, 60, 0.1)',
+                                    border: '1px solid rgba(231, 76, 60, 0.2)',
+                                    borderRadius: '10px',
+                                    padding: '10px',
+                                    color: '#ff6b6b',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center'
+                                }}
+                                title="Eliminar"
+                            >
+                                <Trash2 size={18} />
+                            </button>
+                        </div>
+                    </div>
+                ))}
             </div>
 
             {isModalOpen && (
