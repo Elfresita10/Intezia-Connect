@@ -3,9 +3,11 @@ import { Mail, Phone, Edit3, Camera, Save, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { getOrInitDB, User, logAction } from '../db/db';
 import { canEdit } from '../utils/permissions';
+import { useAlert } from '../context/AlertContext';
 
 const Profile: React.FC = () => {
     const { user: authUser, refreshUser } = useAuth();
+    const { showAlert } = useAlert();
     const [profile, setProfile] = useState<User | null>(null);
     const [isEditing, setIsEditing] = useState(false);
     const [editForm, setEditForm] = useState<Partial<User>>({});
@@ -29,6 +31,7 @@ const Profile: React.FC = () => {
             }
         } catch (error) {
             console.error("Error fetching profile:", error);
+            showAlert('No se pudo cargar el perfil.', 'error');
         } finally {
             setLoading(false);
         }
@@ -155,10 +158,10 @@ const Profile: React.FC = () => {
             }
 
             setIsEditing(false);
-            alert("Perfil actualizado correctamente");
+            showAlert("Perfil actualizado correctamente", 'success');
         } catch (error) {
             console.error("Error saving profile:", error);
-            alert("Error al guardar el perfil: " + (error instanceof Error ? error.message : 'Error desconocido'));
+            showAlert("Error al guardar el perfil.", 'error');
         }
     };
 
