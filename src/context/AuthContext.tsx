@@ -19,13 +19,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const initializeAuthAndDB = async () => {
             try {
                 // 1. Always ensure DB is initialized before anything else
-                const { initDB, getDb } = await import('../db/db');
-                await initDB();
+                const { getOrInitDB } = await import('../db/db');
+                const db = await getOrInitDB();
 
                 // 2. Check for stored user session
                 const storedUserId = localStorage.getItem('auth_user_id');
                 if (storedUserId) {
-                    const db = getDb();
                     const result = await db.exec({
                         sql: 'SELECT * FROM users WHERE id = ?',
                         bind: [parseInt(storedUserId)],
