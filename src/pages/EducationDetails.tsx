@@ -1,148 +1,244 @@
-import React, { useState, useEffect } from 'react';
-import { getOrInitDB, logAction, User } from '../db/db';
+import React, { useEffect, useState } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { ArrowLeft, PlayCircle, FileText, Plus, Trash2, X, GraduationCap } from 'lucide-react';
+import { getOrInitDB, logAction, Education as EducationItem, CourseModule, CourseResource } from '../db/db';
 import { useAuth } from '../context/AuthContext';
-import { UserPlus, Trash2, Search, X } from 'lucide-react';
+import { canCreate, canDelete } from '../utils/permissions';
 
-const UsersManagement: React.FC = () => {
-    const { user: authUser } = useAuth();
-    const [users, setUsers] = useState<User[]>([]);
-    const [searchTerm, setSearchTerm] = useState('');
-    const [isModalOpen, setIsModalOpen] = useState(false);
+const EducationDetails: React.FC = () => {
+    const { id } = useParams<{ id: string }>();
+    const navigate = useNavigate();
+    const { user } = useAuth();
+
+    const [course, setCourse] = useState<EducationItem | null>(null);
+    const [modules, setModules] = useState<CourseModule[]>([]);
+    const [resources, setResources] = useState<CourseResource[]>([]);
     const [loading, setLoading] = useState(true);
 
-    const [formData, setFormData] = useState({
-        name: '',
-        email: '',
-        password: '',
-        role: 'Consultor',
-        title: ''
-    });
+    const [activeVideoIndex, setActiveVideoIndex] = useState(0);
+    const [isModuleModalOpen, setIsModuleModalOpen] = useState(false);
+    const [isResourceModalOpen, setIsResourceModalOpen] = useState(false);
 
-    const fetchUsers = async () => {
-        setLoading(true);
+    const [moduleFormData, setModuleFormData] = useState({ title: '', video_url: '' });
+    const [resourceFormData, setResourceFormData] = useState({ name: '', url: '' });
+
+    const fetchCourseData = async () => {
         try {
             const db = await getOrInitDB();
-            const res = await db.exec({
-                sql: "SELECT * FROM users ORDER BY id DESC",
+            const courseRows = await db.exec({
+                sql: 'SELECT * FROM education WHERE id = ?',
+                bind: [id],
                 returnValue: 'resultRows'
             });
-            setUsers(res || []);
+            if (courseRows && courseRows.length > 0) {
+                setCourse(courseRows[0] as unknown as EducationItem);
+            }
+
+            const moduleRows = await db.exec({
+                sql: 'SELECT * FROM course_modules WHERE education_id = ? ORDER BY id ASC',
+                bind: [id],
+                returnValue: 'resultRows'
+            });
+            setModules(moduleRows || []);
+
+            const resourceRows = await db.exec({
+                sql: 'SELECT * FROM course_resources WHERE education_id = ? ORDER BY id ASC',
+                bind: [id],
+                returnValue: 'resultRows'
+            });
+            setResources(resourceRows || []);
         } catch (e) {
-            console.error("Fetch Users Error:", e);
+            console.error("Fetch Education Details Error:", e);
         } finally {
             setLoading(false);
         }
     };
 
     useEffect(() => {
-        fetchUsers();
-    }, []);
+        if (id) fetchCourseData();
+    }, [id]);
 
-    const handleCreateUser = async (e: React.FormEvent) => {
+    const handleSaveModule = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
             const db = await getOrInitDB();
             await db.exec({
-                sql: "INSERT INTO users (name, email, password, role, title) VALUES (?, ?, ?, ?, ?)",
-                bind: [formData.name, formData.email, formData.password, formData.role, formData.title]
+                sql: 'INSERT INTO course_modules (education_id, title, video_url) VALUES (?, ?, ?)',
+                bind: [id, moduleFormData.title, moduleFormData.video_url]
             });
-
-            await logAction(authUser?.name || 'Sistema', 'Creó Usuario', 'Usuarios', `Creó: ${formData.name}`);
-            setIsModalOpen(false);
-            setFormData({ name: '', email: '', password: '', role: 'Consultor', title: '' });
-            fetchUsers();
-        } catch (e) {
-            console.error("Create User Error:", e);
-            alert("Error al crear usuario.");
-        }
+            await logAction(user?.name || 'Sistema', 'Añadió Módulo', 'Educación', `Añadió clase: ${moduleFormData.title}`);
+            setIsModuleModalOpen(false);
+            setModuleFormData({ title: '', video_url: '' });
+            fetchCourseData();
+        } catch (e) { console.error(e); }
     };
 
-    const handleDeleteUser = async (id: number, name: string) => {
-        if (id === authUser?.id) return alert("No puedes eliminarte a ti mismo.");
-        if (window.confirm(`¿Eliminar a ${name}?`)) {
+    const handleDeleteModule = async (moduleId: number, title: string) => {
+        if (!canDelete(user?.role)) return;
+        if (window.confirm(`¿Eliminar clase ${title}?`)) {
             try {
                 const db = await getOrInitDB();
-                await db.exec({ sql: "DELETE FROM users WHERE id = ?", bind: [id] });
-                await logAction(authUser?.name || 'Sistema', 'Eliminó Usuario', 'Usuarios', `Eliminó: ${name}`);
-                fetchUsers();
-            } catch (e) {
-                console.error("Delete User Error:", e);
-            }
+                await db.exec({ sql: 'DELETE FROM course_modules WHERE id = ?', bind: [moduleId] });
+                await logAction(user?.name || 'Sistema', 'Eliminó Módulo', 'Educación', `Eliminó clase: ${title}`);
+                fetchCourseData();
+            } catch (e) { console.error(e); }
         }
     };
 
-    const filteredUsers = users.filter(u =>
-        u.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (u.email || '').toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const handleSaveResource = async (e: React.FormEvent) => {
+        e.preventDefault();
+        try {
+            const db = await getOrInitDB();
+            await db.exec({
+                sql: 'INSERT INTO course_resources (education_id, name, url) VALUES (?, ?, ?)',
+                bind: [id, resourceFormData.name, resourceFormData.url]
+            });
+            await logAction(user?.name || 'Sistema', 'Añadió Recurso', 'Educación', `Añadió recurso: ${resourceFormData.name}`);
+            setIsResourceModalOpen(false);
+            setResourceFormData({ name: '', url: '' });
+            fetchCourseData();
+        } catch (e) { console.error(e); }
+    };
+
+    const handleDeleteResource = async (resourceId: number, name: string) => {
+        if (!canDelete(user?.role)) return;
+        if (window.confirm(`¿Eliminar recurso ${name}?`)) {
+            try {
+                const db = await getOrInitDB();
+                await db.exec({ sql: 'DELETE FROM course_resources WHERE id = ?', bind: [resourceId] });
+                await logAction(user?.name || 'Sistema', 'Eliminó Recurso', 'Educación', `Eliminó recurso: ${name}`);
+                fetchCourseData();
+            } catch (e) { console.error(e); }
+        }
+    };
 
     if (loading) return <div className="skeleton" style={{ height: '400px', borderRadius: '20px' }}></div>;
+    if (!course) return <div className="p-4" style={{ textAlign: 'center' }}>Formación no encontrada.</div>;
+
+    const currentModule = modules[activeVideoIndex];
 
     return (
-        <div className="animate-fade-in">
-            <div className="flex flex-wrap space-between align-center mb-2" style={{ gap: '16px' }}>
-                <h2 className="section-title" style={{ margin: 0 }}>Gestión de Consultores</h2>
-                <button onClick={() => setIsModalOpen(true)} className="btn">
-                    <UserPlus size={18} /> Nuevo Consultor
-                </button>
+        <div className="animate-fade-in relative">
+            <button onClick={() => navigate('/education')} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', marginBottom: '1.5rem', padding: 0 }}>
+                <ArrowLeft size={16} /> Volver a Formación
+            </button>
+
+            <div className="mb-2">
+                <h2 style={{ fontSize: '1.8rem', color: '#fff', display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                    <GraduationCap size={28} color="var(--accent)" /> {course.title}
+                </h2>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>{course.institution} • {course.type}</p>
             </div>
 
-            <div className="glass-card mb-2" style={{ padding: '12px' }}>
-                <div className="flex align-center gap-1" style={{ width: '100%' }}>
-                    <Search size={20} style={{ color: 'var(--text-secondary)', marginLeft: '8px' }} />
-                    <input
-                        type="text"
-                        placeholder="Buscar por nombre o correo..."
-                        className="form-input"
-                        style={{ background: 'transparent', border: 'none', boxShadow: 'none' }}
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                    />
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 7fr) minmax(0, 3fr)', gap: '20px', alignItems: 'start' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                    {modules.length > 0 && currentModule ? (
+                        <div className="glass-card" style={{ padding: '0', overflow: 'hidden' }}>
+                            <div style={{ width: '100%', aspectRatio: '16/9', background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '16px' }}>
+                                <PlayCircle size={64} color="var(--accent)" style={{ opacity: 0.8 }} />
+                                <h4 style={{ color: '#fff', fontSize: '1.2rem', textAlign: 'center', padding: '0 20px' }}>{currentModule.title}</h4>
+                                <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>Enlace: {currentModule.video_url}</p>
+                            </div>
+                            <div style={{ padding: '24px' }}>
+                                <h3 style={{ margin: 0, color: '#fff' }}>{currentModule.title}</h3>
+                                <p style={{ color: 'var(--text-secondary)', marginTop: '8px' }}>Módulo {activeVideoIndex + 1} de {modules.length}</p>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="glass-card" style={{ padding: '4rem', textAlign: 'center', opacity: 0.5 }}>
+                            <PlayCircle size={48} style={{ marginBottom: '1rem' }} />
+                            <p>No hay videos registrados para esta formación.</p>
+                        </div>
+                    )}
+
+                    <div className="glass-card" style={{ padding: '24px' }}>
+                        <div className="flex space-between align-center mb-2">
+                            <h3 style={{ margin: 0, color: '#fff', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <FileText size={20} color="var(--accent)" /> Material de Apoyo
+                            </h3>
+                            {canCreate(user?.role) && (
+                                <button onClick={() => setIsResourceModalOpen(true)} className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: '0.8rem' }}>
+                                    <Plus size={14} /> Añadir Recurso
+                                </button>
+                            )}
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '12px' }}>
+                            {resources.map(res => (
+                                <div key={res.id} className="glass-card" style={{ padding: '16px', margin: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.03)' }}>
+                                    <a href={res.url} target="_blank" rel="noopener noreferrer" style={{ color: '#fff', fontSize: '0.9rem', textDecoration: 'none', overflow: 'hidden', textOverflow: 'ellipsis' }}>{res.name}</a>
+                                    {canDelete(user?.role) && (
+                                        <button onClick={() => handleDeleteResource(res.id, res.name)} className="btn-icon" style={{ color: '#ff6b6b' }}>
+                                            <Trash2 size={14} />
+                                        </button>
+                                    )}
+                                </div>
+                            ))}
+                            {resources.length === 0 && <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>No hay recursos adicionales.</p>}
+                        </div>
+                    </div>
+                </div>
+
+                <div className="glass-card" style={{ padding: '0', display: 'flex', flexDirection: 'column', height: 'fit-content' }}>
+                    <div style={{ padding: '20px', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <h4 style={{ margin: 0, color: '#fff' }}>Plan de Estudios</h4>
+                        {canCreate(user?.role) && (
+                            <button onClick={() => setIsModuleModalOpen(true)} className="btn-icon" style={{ color: 'var(--accent)' }}><Plus size={20} /></button>
+                        )}
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        {modules.map((mod, idx) => (
+                            <div
+                                key={mod.id}
+                                onClick={() => setActiveVideoIndex(idx)}
+                                style={{
+                                    padding: '16px 20px', cursor: 'pointer', borderBottom: '1px solid var(--border-color)',
+                                    background: idx === activeVideoIndex ? 'rgba(88,166,255,0.08)' : 'transparent',
+                                    borderLeft: idx === activeVideoIndex ? '4px solid var(--accent)' : '4px solid transparent',
+                                }}
+                            >
+                                <div className="flex space-between align-center">
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                        <span style={{ fontSize: '0.75rem', color: idx === activeVideoIndex ? 'var(--accent)' : 'var(--text-secondary)', fontWeight: 700 }}>CLASE {idx + 1}</span>
+                                        <span style={{ fontSize: '0.9rem', color: idx === activeVideoIndex ? '#fff' : 'rgba(255,255,255,0.8)' }}>{mod.title}</span>
+                                    </div>
+                                    {canDelete(user?.role) && (
+                                        <button onClick={(e) => { e.stopPropagation(); handleDeleteModule(mod.id, mod.title); }} className="btn-icon" style={{ color: '#ff6b6b', opacity: 0.5 }}><Trash2 size={14} /></button>
+                                    )}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
                 </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
-                {filteredUsers.map(u => (
-                    <div key={u.id} className="glass-card fade-in" style={{ padding: '24px', display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-                        <div style={{
-                            width: 60, height: 60, borderRadius: '50%',
-                            background: u.avatarBase64 ? `url(${u.avatarBase64}) center/cover` : 'linear-gradient(135deg, var(--accent), #fff)',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', border: '2px solid rgba(255,255,255,0.1)'
-                        }}>
-                            {!u.avatarBase64 && u.name.substring(0, 2).toUpperCase()}
-                        </div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                            <h3 className="text-truncate" style={{ margin: '0 0 4px 0', fontSize: '1.1rem', color: '#fff' }}>{u.name}</h3>
-                            <p className="badge" style={{ fontSize: '0.7rem', padding: '2px 8px', marginBottom: '8px' }}>{u.role}</p>
-                            <p className="text-truncate" style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: 0 }}>{u.email}</p>
-                        </div>
-                        <button onClick={() => handleDeleteUser(u.id, u.name)} className="btn-icon" style={{ color: '#ff6b6b' }}>
-                            <Trash2 size={20} />
-                        </button>
-                    </div>
-                ))}
-            </div>
-
-            {isModalOpen && (
-                <div style={{ position: 'fixed', inset: 0, z_index: 3000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)' }}>
+            {/* Modals */}
+            {isModuleModalOpen && (
+                <div style={{ position: 'fixed', inset: 0, zIndex: 3000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)' }}>
                     <div className="glass-card fade-in" style={{ width: '100%', maxWidth: '450px', padding: '32px' }}>
                         <div className="flex space-between align-center mb-2">
-                            <h3 style={{ margin: 0, color: '#fff' }}>Nuevo Usuario</h3>
-                            <button onClick={() => setIsModalOpen(false)} className="btn-icon"><X size={24} /></button>
+                            <h3 style={{ margin: 0, color: '#fff' }}>Nueva Clase</h3>
+                            <button onClick={() => setIsModuleModalOpen(false)} className="btn-icon"><X size={24} /></button>
                         </div>
-                        <form onSubmit={handleCreateUser} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                            <input required placeholder="Nombre Completo" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} className="form-input" />
-                            <input required type="email" placeholder="Correo Electrónico" value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} className="form-input" />
-                            <input required type="password" placeholder="Contraseña Inicial" value={formData.password} onChange={e => setFormData({ ...formData, password: e.target.value })} className="form-input" />
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                                <select value={formData.role} onChange={e => setFormData({ ...formData, role: e.target.value })} className="form-input" style={{ appearance: 'auto' }}>
-                                    <option value="Consultor">Consultor</option>
-                                    <option value="Admin">Admin</option>
-                                    <option value="Super admin">Super Admin</option>
-                                </select>
-                                <input placeholder="Título Cargo" value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} className="form-input" />
-                            </div>
-                            <button type="submit" className="btn btn-primary" style={{ width: '100%', justifyContent: 'center', marginTop: '1rem' }}>Crear Usuario</button>
+                        <form onSubmit={handleSaveModule} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                            <input required placeholder="Título de la clase" value={moduleFormData.title} onChange={e => setModuleFormData({ ...moduleFormData, title: e.target.value })} className="form-input" />
+                            <input required placeholder="URL del video" value={moduleFormData.video_url} onChange={e => setModuleFormData({ ...moduleFormData, video_url: e.target.value })} className="form-input" />
+                            <button type="submit" className="btn btn-primary" style={{ width: '100%', justifyContent: 'center', marginTop: '1rem' }}>Guardar Clase</button>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {isResourceModalOpen && (
+                <div style={{ position: 'fixed', inset: 0, zIndex: 3000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)' }}>
+                    <div className="glass-card fade-in" style={{ width: '100%', maxWidth: '450px', padding: '32px' }}>
+                        <div className="flex space-between align-center mb-2">
+                            <h3 style={{ margin: 0, color: '#fff' }}>Nuevo Recurso</h3>
+                            <button onClick={() => setIsResourceModalOpen(false)} className="btn-icon"><X size={24} /></button>
+                        </div>
+                        <form onSubmit={handleSaveResource} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                            <input required placeholder="Nombre del recurso" value={resourceFormData.name} onChange={e => setResourceFormData({ ...resourceFormData, name: e.target.value })} className="form-input" />
+                            <input required placeholder="URL de descarga" value={resourceFormData.url} onChange={e => setResourceFormData({ ...resourceFormData, url: e.target.value })} className="form-input" />
+                            <button type="submit" className="btn btn-primary" style={{ width: '100%', justifyContent: 'center', marginTop: '1rem' }}>Añadir Material</button>
                         </form>
                     </div>
                 </div>
@@ -151,4 +247,4 @@ const UsersManagement: React.FC = () => {
     );
 };
 
-export default UsersManagement;
+export default EducationDetails;
