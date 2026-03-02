@@ -18,10 +18,13 @@ const Projects: React.FC = () => {
 
     const fetchProjects = async () => {
         try {
-            const db = getDb();
-            const rows = await db.exec({ sql: 'SELECT * FROM projects', returnValue: 'resultRows', rowMode: 'object' });
+            const { getOrInitDB } = await import('../db/db');
+            const db = await getOrInitDB();
+            const rows = await db.exec({ sql: 'SELECT * FROM projects ORDER BY id DESC', returnValue: 'resultRows', rowMode: 'object' });
             setProjects(rows as unknown as Project[]);
-        } catch (e) { console.error(e); }
+        } catch (e) {
+            console.error('Fetch Projects failed:', e);
+        }
     };
 
     useEffect(() => {
@@ -44,20 +47,27 @@ const Projects: React.FC = () => {
 
     const handleDelete = async (id: number, title: string) => {
         if (!canDelete(user?.role)) return;
-        if (window.confirm('¿Seguro que deseas eliminar este proyecto?')) {
+        if (window.confirm(`¿Seguro que deseas eliminar el proyecto "${title}"?`)) {
             try {
-                const db = getDb();
+                const { getOrInitDB, logAction } = await import('../db/db');
+                const db = await getOrInitDB();
                 await db.exec({ sql: 'DELETE FROM projects WHERE id = ?', bind: [id] });
                 await logAction(user?.name || 'Desconocido', 'Eliminó', 'Proyecto', `Eliminó el proyecto: ${title}`);
+                alert('Proyecto eliminado con éxito');
                 fetchProjects();
-            } catch (e) { console.error(e); }
+            } catch (e) {
+                console.error('Delete failed:', e);
+                alert('No se pudo eliminar el proyecto. Revisa la consola para más detalles.');
+            }
         }
     };
 
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            const db = getDb();
+            const { getOrInitDB, logAction } = await import('../db/db');
+            const db = await getOrInitDB();
+
             if (editingProject) {
                 if (user?.role === 'Consultor') {
                     await db.exec({
@@ -72,6 +82,7 @@ const Projects: React.FC = () => {
                     });
                     await logAction(user?.name || 'Desconocido', 'Editó', 'Proyecto', `Actualizó información completa: ${formData.title}`);
                 }
+                alert('Proyecto actualizado con éxito');
             } else {
                 if (!canCreate(user?.role)) return;
                 await db.exec({
@@ -80,6 +91,8 @@ const Projects: React.FC = () => {
                 });
                 await logAction(user?.name || 'Desconocido', 'Creó', 'Proyecto', `Creó el proyecto: ${formData.title}`);
 
+                alert('Proyecto creado con éxito en Turso');
+
                 NotificationService.sendLocalNotification('Nuevo Proyecto Creado', {
                     body: `Se ha registrado el proyecto: ${formData.title}`,
                     tag: 'new-project'
@@ -87,7 +100,10 @@ const Projects: React.FC = () => {
             }
             setIsModalOpen(false);
             fetchProjects();
-        } catch (e) { console.error(e); }
+        } catch (e) {
+            console.error('Save failed:', e);
+            alert('Error al guardar: ' + (e instanceof Error ? e.message : 'Error desconocido'));
+        }
     };
 
     return (
