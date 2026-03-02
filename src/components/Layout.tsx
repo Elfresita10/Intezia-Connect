@@ -3,7 +3,7 @@ import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { Home, User as UserIcon, Briefcase, GraduationCap, LogOut, History, Book, Users } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { canViewAuditLog, canCreate } from '../utils/permissions';
-import { getDb } from '../db/db';
+import { getOrInitDB } from '../db/db';
 import KeiaChat from './KeiaChat';
 import { NotificationService } from '../utils/NotificationService';
 import { Bell, BellOff } from 'lucide-react';
@@ -16,7 +16,6 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [pendingReviewCount, setPendingReviewCount] = useState(0);
     const [notifPermission, setNotifPermission] = useState<NotificationPermission>(NotificationService.getPermissionStatus());
 
-    // Only Supervisors care about "En Revisión" tasks
     const isSupervisor = canCreate(user?.role);
 
     useEffect(() => {
@@ -24,37 +23,30 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
         const fetchPendingTasks = async () => {
             try {
-                const db = getDb();
+                const db = await getOrInitDB();
                 const res = await db.exec({
                     sql: "SELECT count(*) as count FROM project_tasks WHERE status = 'En Revisión'",
-                    returnValue: 'resultRows',
-                    rowMode: 'object'
+                    returnValue: 'resultRows'
                 });
 
-                if (res.length > 0) {
-                    setPendingReviewCount((res[0] as any).count || 0);
+                if (res && res.length > 0) {
+                    setPendingReviewCount(res[0].count || 0);
                 }
             } catch (e) {
-                console.error("Error fetching pending task count", e);
+                console.error("Layout DB Error:", e);
             }
         };
 
         fetchPendingTasks();
-
-        // Simple polling every 5 seconds to keep the badge updated across navigation
-        const interval = setInterval(fetchPendingTasks, 5000);
+        const interval = setInterval(fetchPendingTasks, 10000);
         return () => clearInterval(interval);
     }, [isSupervisor, user]);
 
     useEffect(() => {
-        // Check for Friday reminder on app load
         NotificationService.checkFridayReminder();
-
-        // Also check every hour if the app stays open
         const interval = setInterval(() => {
             NotificationService.checkFridayReminder();
         }, 3600000);
-
         return () => clearInterval(interval);
     }, []);
 
@@ -86,10 +78,9 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
     return (
         <div className="app-container">
-            {/* --- MOBILE VIEW COMPONENTS --- */}
             <header className="header mobile-header-only">
                 <div className="header-left">
-                    <img src={logo} alt="Logo" className="mobile-logo" style={{ height: '24px', width: 'auto' }} />
+                    <img src={logo} alt="Logo" className="mobile-logo" style={{ height: '24px' }} />
                     <div className="title-divider" />
                     <div className="header-titles">
                         <h1>{getPageTitle(location.pathname)}</h1>
@@ -98,108 +89,50 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                 </div>
                 <div className="header-right">
                     <div className="user-avatar" style={{ background: user?.avatarBase64 ? `url(${user.avatarBase64}) center/cover` : 'linear-gradient(135deg, var(--accent), #fff)' }}>
-                        {!user?.avatarBase64 && (user ? user.name.substring(0, 2).toUpperCase() : 'CJ')}
+                        {!user?.avatarBase64 && (user ? user.name.substring(0, 2).toUpperCase() : 'U')}
                     </div>
-                    <button
-                        onClick={handleRequestNotifs}
-                        className="logout-btn"
-                        style={{ background: notifPermission === 'granted' ? 'rgba(255,215,0,0.1)' : 'rgba(255,255,255,0.05)', color: notifPermission === 'granted' ? 'var(--accent)' : '#fff' }}
-                        title={notifPermission === 'granted' ? "Notificaciones activas" : "Activar notificaciones"}
-                    >
-                        {notifPermission === 'granted' ? <Bell size={16} /> : <BellOff size={16} />}
-                    </button>
                     <button onClick={handleLogout} className="logout-btn" title="Cerrar sesión">
-                        <LogOut size={16} />
+                        <LogOut size={18} />
                     </button>
                 </div>
             </header>
 
             <nav className="mobile-bottom-nav">
-                <NavLink to="/dashboard" className={({ isActive }) => `mobile-nav-item ${isActive ? 'active' : ''}`}>
-                    <Home size={22} />
-                    <span>Inicio</span>
-                </NavLink>
-                <NavLink to="/profile" className={({ isActive }) => `mobile-nav-item ${isActive ? 'active' : ''}`}>
-                    <UserIcon size={22} />
-                    <span>Perfil</span>
-                </NavLink>
+                <NavLink to="/dashboard" className={({ isActive }) => `mobile-nav-item ${isActive ? 'active' : ''}`}><Home size={22} /><span>Inicio</span></NavLink>
+                <NavLink to="/profile" className={({ isActive }) => `mobile-nav-item ${isActive ? 'active' : ''}`}><UserIcon size={22} /><span>Perfil</span></NavLink>
                 <NavLink to="/projects" className={({ isActive }) => `mobile-nav-item ${isActive ? 'active' : ''}`} style={{ position: 'relative' }}>
-                    <Briefcase size={22} />
-                    <span>Proyectos</span>
-                    {(pendingReviewCount > 0 && isSupervisor) && (
-                        <span className="badge-notification">{pendingReviewCount}</span>
-                    )}
+                    <Briefcase size={22} /><span>Proyectos</span>
+                    {pendingReviewCount > 0 && isSupervisor && <span className="badge-notification">{pendingReviewCount}</span>}
                 </NavLink>
-                <NavLink to="/education" className={({ isActive }) => `mobile-nav-item ${isActive ? 'active' : ''}`}>
-                    <GraduationCap size={22} />
-                    <span>Educa</span>
-                </NavLink>
-                <NavLink to="/fundamentals" className={({ isActive }) => `mobile-nav-item ${isActive ? 'active' : ''}`}>
-                    <Book size={22} />
-                    <span>Funda</span>
-                </NavLink>
-                {user?.role === 'Super admin' && (
-                    <NavLink to="/users" className={({ isActive }) => `mobile-nav-item ${isActive ? 'active' : ''}`}>
-                        <Users size={22} />
-                        <span>Users</span>
-                    </NavLink>
-                )}
-                {canViewAuditLog(user?.role) && (
-                    <NavLink to="/audit-log" className={({ isActive }) => `mobile-nav-item ${isActive ? 'active' : ''}`}>
-                        <History size={22} />
-                        <span>Logs</span>
-                    </NavLink>
-                )}
+                <NavLink to="/education" className={({ isActive }) => `mobile-nav-item ${isActive ? 'active' : ''}`}><GraduationCap size={22} /><span>Educa</span></NavLink>
+                <NavLink to="/fundamentals" className={({ isActive }) => `mobile-nav-item ${isActive ? 'active' : ''}`}><Book size={22} /><span>Funda</span></NavLink>
             </nav>
 
-            {/* --- DESKTOP VIEW COMPONENTS --- */}
             <aside className="desktop-sidebar">
                 <div className="sidebar-logo">
                     <img src={logo} alt="Logo" />
                 </div>
-
                 <div className="sidebar-nav">
-                    <NavLink to="/dashboard" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
-                        <Home size={20} />
-                        <span>Inicio</span>
-                    </NavLink>
-                    <NavLink to="/profile" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
-                        <UserIcon size={20} />
-                        <span>Mi Perfil</span>
-                    </NavLink>
+                    <NavLink to="/dashboard" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}><Home size={20} /><span>Inicio</span></NavLink>
+                    <NavLink to="/profile" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}><UserIcon size={20} /><span>Mi Perfil</span></NavLink>
                     <NavLink to="/projects" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`} style={{ position: 'relative' }}>
-                        <Briefcase size={20} />
-                        <span>Proyectos</span>
-                        {(pendingReviewCount > 0 && isSupervisor) && (
-                            <span className="badge-notification">{pendingReviewCount}</span>
-                        )}
+                        <Briefcase size={20} /><span>Proyectos</span>
+                        {pendingReviewCount > 0 && isSupervisor && <span className="badge-notification">{pendingReviewCount}</span>}
                     </NavLink>
-                    <NavLink to="/education" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
-                        <GraduationCap size={20} />
-                        <span>Educación</span>
-                    </NavLink>
-                    <NavLink to="/fundamentals" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
-                        <Book size={20} />
-                        <span>Fundamentos Intezia</span>
-                    </NavLink>
+                    <NavLink to="/education" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}><GraduationCap size={20} /><span>Educación</span></NavLink>
+                    <NavLink to="/fundamentals" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}><Book size={20} /><span>Fundamentos Intezia</span></NavLink>
                     {user?.role === 'Super admin' && (
-                        <NavLink to="/users" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
-                            <Users size={20} />
-                            <span>Gestión de Usuarios</span>
-                        </NavLink>
+                        <NavLink to="/users" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}><Users size={20} /><span>Usuarios</span></NavLink>
                     )}
                     {canViewAuditLog(user?.role) && (
-                        <NavLink to="/audit-log" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
-                            <History size={20} />
-                            <span>Bitácora Auditoría</span>
-                        </NavLink>
+                        <NavLink to="/audit-log" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}><History size={20} /><span>Bitácora</span></NavLink>
                     )}
                 </div>
 
                 <div className="sidebar-user">
                     <div className="user-profile-info">
                         <div className="user-avatar" style={{ background: user?.avatarBase64 ? `url(${user.avatarBase64}) center/cover` : 'linear-gradient(135deg, var(--accent), #fff)' }}>
-                            {!user?.avatarBase64 && (user ? user.name.substring(0, 2).toUpperCase() : 'CJ')}
+                            {!user?.avatarBase64 && (user ? user.name.substring(0, 2).toUpperCase() : 'U')}
                         </div>
                         <div className="user-details">
                             <span className="user-name">{user?.name}</span>
@@ -207,15 +140,8 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                         </div>
                     </div>
                     <div className="sidebar-actions">
-                        <button
-                            onClick={handleRequestNotifs}
-                            className="mini-action-btn"
-                            title={notifPermission === 'granted' ? "Notificaciones activas" : "Activar notificaciones"}
-                        >
-                            {notifPermission === 'granted' ? <Bell size={14} color="var(--accent)" /> : <BellOff size={14} />}
-                        </button>
                         <button onClick={handleLogout} className="mini-action-btn" title="Cerrar sesión">
-                            <LogOut size={14} />
+                            <LogOut size={16} />
                         </button>
                     </div>
                 </div>
