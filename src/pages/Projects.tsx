@@ -20,7 +20,11 @@ const Projects: React.FC = () => {
         try {
             const { getOrInitDB } = await import('../db/db');
             const db = await getOrInitDB();
-            const rows = await db.exec({ sql: 'SELECT * FROM projects ORDER BY id DESC', returnValue: 'resultRows', rowMode: 'object' });
+            const rows = await db.exec({
+                sql: 'SELECT * FROM projects ORDER BY id DESC',
+                returnValue: 'resultRows',
+                rowMode: 'object'
+            });
             setProjects(rows as unknown as Project[]);
         } catch (e) {
             console.error('Fetch Projects failed:', e);
@@ -47,18 +51,16 @@ const Projects: React.FC = () => {
 
     const handleDelete = async (id: number, title: string) => {
         if (!canDelete(user?.role)) return;
-        if (window.confirm(`¿Seguro que deseas eliminar el proyecto "${title}"?`)) {
-            try {
-                const { getOrInitDB, logAction } = await import('../db/db');
-                const db = await getOrInitDB();
-                await db.exec({ sql: 'DELETE FROM projects WHERE id = ?', bind: [id] });
-                await logAction(user?.name || 'Desconocido', 'Eliminó', 'Proyecto', `Eliminó el proyecto: ${title}`);
-                alert('Proyecto eliminado con éxito');
-                fetchProjects();
-            } catch (e) {
-                console.error('Delete failed:', e);
-                alert('No se pudo eliminar el proyecto. Revisa la consola para más detalles.');
-            }
+        if (!window.confirm(`¿Seguro que deseas eliminar el proyecto "${title}"?`)) return;
+
+        try {
+            const { getOrInitDB, logAction } = await import('../db/db');
+            const db = await getOrInitDB();
+            await db.exec({ sql: 'DELETE FROM projects WHERE id = ?', bind: [id] });
+            await logAction(user?.name || 'Sistema', 'Eliminó', 'Proyecto', `Proyecto: ${title}`);
+            fetchProjects();
+        } catch (e) {
+            alert('Error al eliminar proyecto');
         }
     };
 
@@ -69,40 +71,36 @@ const Projects: React.FC = () => {
             const db = await getOrInitDB();
 
             if (editingProject) {
-                if (user?.role === 'Consultor') {
-                    await db.exec({
-                        sql: 'UPDATE projects SET status = ?, progress = ? WHERE id = ?',
-                        bind: [formData.status, formData.progress, editingProject.id]
-                    });
-                    await logAction(user?.name || 'Desconocido', 'Editó', 'Proyecto', `Actualizó progreso a ${formData.progress}%: ${editingProject.title}`);
-                } else {
-                    await db.exec({
-                        sql: 'UPDATE projects SET title = ?, client = ?, status = ?, progress = ?, dueDate = ? WHERE id = ?',
-                        bind: [formData.title, formData.client, formData.status, formData.progress, formData.dueDate, editingProject.id]
-                    });
-                    await logAction(user?.name || 'Desconocido', 'Editó', 'Proyecto', `Actualizó información completa: ${formData.title}`);
-                }
-                alert('Proyecto actualizado con éxito');
+                // Edit Logic
+                const sql = user?.role === 'Consultor'
+                    ? 'UPDATE projects SET status = ?, progress = ? WHERE id = ?'
+                    : 'UPDATE projects SET title = ?, client = ?, status = ?, progress = ?, dueDate = ? WHERE id = ?';
+
+                const bind = user?.role === 'Consultor'
+                    ? [formData.status, formData.progress, editingProject.id]
+                    : [formData.title, formData.client, formData.status, formData.progress, formData.dueDate, editingProject.id];
+
+                await db.exec({ sql, bind });
+                await logAction(user?.name || 'Sistema', 'Editó', 'Proyecto', `Proyecto: ${formData.title}`);
             } else {
+                // Create Logic
                 if (!canCreate(user?.role)) return;
                 await db.exec({
                     sql: 'INSERT INTO projects (title, client, status, progress, dueDate) VALUES (?, ?, ?, ?, ?)',
                     bind: [formData.title, formData.client, formData.status, formData.progress, formData.dueDate]
                 });
-                await logAction(user?.name || 'Desconocido', 'Creó', 'Proyecto', `Creó el proyecto: ${formData.title}`);
+                await logAction(user?.name || 'Sistema', 'Creó', 'Proyecto', `Proyecto: ${formData.title}`);
 
-                alert('Proyecto creado con éxito en Turso');
-
-                NotificationService.sendLocalNotification('Nuevo Proyecto Creado', {
-                    body: `Se ha registrado el proyecto: ${formData.title}`,
+                NotificationService.sendLocalNotification('Nuevo Proyecto', {
+                    body: `Proyecto registrado: ${formData.title}`,
                     tag: 'new-project'
                 });
             }
             setIsModalOpen(false);
             fetchProjects();
         } catch (e) {
-            console.error('Save failed:', e);
-            alert('Error al guardar: ' + (e instanceof Error ? e.message : 'Error desconocido'));
+            console.error('Save error:', e);
+            alert('Error al guardar datos. Revisa la consola.');
         }
     };
 
