@@ -4,11 +4,13 @@ import { ArrowLeft, Clock, CheckCircle2, CircleDashed, AlertCircle, Plus, Edit2,
 import { getOrInitDB, logAction, Project, ProjectTask } from '../db/db';
 import { useAuth } from '../context/AuthContext';
 import { canDelete } from '../utils/permissions';
+import { useAlert } from '../context/AlertContext';
 
 const ProjectDetails: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const { user } = useAuth();
+    const { showAlert, showConfirm } = useAlert();
 
     const [project, setProject] = useState<Project | null>(null);
     const [tasks, setTasks] = useState<ProjectTask[]>([]);
@@ -45,6 +47,7 @@ const ProjectDetails: React.FC = () => {
             setTasks(taskRows || []);
         } catch (e) {
             console.error("Fetch Project Details Error:", e);
+            showAlert('Error al cargar detalles del proyecto.', 'error');
         } finally {
             setLoading(false);
         }
@@ -68,14 +71,23 @@ const ProjectDetails: React.FC = () => {
 
     const handleDelete = async (taskId: number, taskTitle: string) => {
         if (!canDelete(user?.role)) return;
-        if (window.confirm('¿Seguro que deseas eliminar esta tarea?')) {
-            try {
-                const db = await getOrInitDB();
-                await db.exec({ sql: 'DELETE FROM project_tasks WHERE id = ?', bind: [taskId] });
-                await logAction(user?.name || 'Sistema', 'Eliminó Tarea', 'Proyecto', `Eliminó: ${taskTitle}`);
-                fetchProjectAndTasks();
-            } catch (e) { console.error(e); }
-        }
+
+        showConfirm(
+            `¿Estás seguro de que deseas eliminar la tarea "${taskTitle}"?`,
+            async () => {
+                try {
+                    const db = await getOrInitDB();
+                    await db.exec({ sql: 'DELETE FROM project_tasks WHERE id = ?', bind: [taskId] });
+                    await logAction(user?.name || 'Sistema', 'Eliminó Tarea', 'Proyecto', `Eliminó: ${taskTitle}`);
+                    showAlert('Tarea eliminada.', 'success');
+                    fetchProjectAndTasks();
+                } catch (e) {
+                    console.error(e);
+                    showAlert('Error al eliminar la tarea.', 'error');
+                }
+            },
+            'Eliminar Tarea'
+        );
     };
 
     const handleSave = async (e: React.FormEvent) => {
@@ -88,18 +100,20 @@ const ProjectDetails: React.FC = () => {
                     bind: [formData.title, formData.description, formData.status, formData.assigned_to, editingTask.id]
                 });
                 await logAction(user?.name || 'Sistema', 'Actualizó Tarea', 'Proyecto', `Editó: ${formData.title}`);
+                showAlert('Tarea actualizada.', 'success');
             } else {
                 await db.exec({
                     sql: 'INSERT INTO project_tasks (project_id, title, description, status, assigned_to) VALUES (?, ?, ?, ?, ?)',
                     bind: [id, formData.title, formData.description, formData.status, formData.assigned_to]
                 });
                 await logAction(user?.name || 'Sistema', 'Creó Tarea', 'Proyecto', `Creó: ${formData.title}`);
+                showAlert('Nueva tarea asignada.', 'success');
             }
             setIsModalOpen(false);
             fetchProjectAndTasks();
         } catch (e) {
             console.error("Save Task Error:", e);
-            alert("Error al guardar la tarea.");
+            showAlert('Error al guardar la tarea.', 'error');
         }
     };
 
