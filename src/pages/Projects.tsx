@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Calendar, Briefcase, ChevronRight, Edit2, Trash2, Plus, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { canCreate, canEdit, canDelete } from '../utils/permissions';
-import { getDb, logAction, Project } from '../db/db';
+import { Project } from '../db/db';
 import { NotificationService } from '../utils/NotificationService';
 
 const Projects: React.FC = () => {
