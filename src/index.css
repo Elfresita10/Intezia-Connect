@@ -70,6 +70,23 @@ body {
   }
 }
 
+/* HIDDEN UTILITIES (Critical for Dual View) */
+.desktop-only,
+.desktop-sidebar {
+  display: none !important;
+}
+
+@media (min-width: 768px) {
+  .desktop-sidebar {
+    display: flex !important;
+  }
+
+  .mobile-header-only,
+  .mobile-bottom-nav {
+    display: none !important;
+  }
+}
+
 /* MOBILE VIEW (Header \u0026 Navigation) */
 .header {
   height: calc(var(--header-height) + var(--safe-top));
@@ -353,13 +370,10 @@ tr td:last-child {
   border: 1px solid rgba(255, 215, 0, 0.15) !important;
 }
 
-/* Desktop Fix */
+/* Desktop Fix (Expanded Styles) */
 @media (min-width: 768px) {
 
-  .mobile-header-only,
-  .mobile-bottom-nav {
-    display: none !important;
-  }
+  /* No longer need to hide here, moved to top for better override flow */
 
   .desktop-sidebar {
     width: 280px;
@@ -495,11 +509,7 @@ tr td:last-child {
   }
 }
 
-/* Helper Classes */
-.desktop-only {
-  display: none;
-}
-
+/* Page Layout Logo Helpers */
 .mobile-logo {
   height: 28px;
   width: auto;
