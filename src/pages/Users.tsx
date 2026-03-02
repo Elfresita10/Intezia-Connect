@@ -2,9 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { getOrInitDB, logAction, User } from '../db/db';
 import { useAuth } from '../context/AuthContext';
 import { UserPlus, Trash2, Search, X } from 'lucide-react';
+import { useAlert } from '../context/AlertContext';
 
 const UsersManagement: React.FC = () => {
     const { user: authUser } = useAuth();
+    const { showAlert, showConfirm } = useAlert();
     const [users, setUsers] = useState<User[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -14,7 +16,7 @@ const UsersManagement: React.FC = () => {
         name: '',
         email: '',
         password: '',
-        role: 'Consultor',
+        role: 'Consultor' as 'Super admin' | 'Admin' | 'Consultor',
         title: ''
     });
 
@@ -29,6 +31,7 @@ const UsersManagement: React.FC = () => {
             setUsers(res || []);
         } catch (e) {
             console.error("Fetch Users Error:", e);
+            showAlert('No se pudo cargar la lista de usuarios.', 'error');
         } finally {
             setLoading(false);
         }
@@ -48,27 +51,35 @@ const UsersManagement: React.FC = () => {
             });
 
             await logAction(authUser?.name || 'Sistema', 'Creó Usuario', 'Usuarios', `Creó: ${formData.name}`);
+            showAlert('Usuario creado correctamente.', 'success');
             setIsModalOpen(false);
             setFormData({ name: '', email: '', password: '', role: 'Consultor', title: '' });
             fetchUsers();
         } catch (e) {
             console.error("Create User Error:", e);
-            alert("Error al crear usuario.");
+            showAlert('Error al crear el usuario. El correo podría ya estar registrado.', 'error');
         }
     };
 
     const handleDeleteUser = async (id: number, name: string) => {
-        if (id === authUser?.id) return alert("No puedes eliminarte a ti mismo.");
-        if (window.confirm(`¿Eliminar a ${name}?`)) {
-            try {
-                const db = await getOrInitDB();
-                await db.exec({ sql: "DELETE FROM users WHERE id = ?", bind: [id] });
-                await logAction(authUser?.name || 'Sistema', 'Eliminó Usuario', 'Usuarios', `Eliminó: ${name}`);
-                fetchUsers();
-            } catch (e) {
-                console.error("Delete User Error:", e);
-            }
-        }
+        if (id === authUser?.id) return showAlert("No puedes eliminar tu propia cuenta.", 'warning');
+
+        showConfirm(
+            `¿Estás seguro de que deseas eliminar a "${name}"? Esta acción no se puede deshacer.`,
+            async () => {
+                try {
+                    const db = await getOrInitDB();
+                    await db.exec({ sql: "DELETE FROM users WHERE id = ?", bind: [id] });
+                    await logAction(authUser?.name || 'Sistema', 'Eliminó Usuario', 'Usuarios', `Eliminó: ${name}`);
+                    showAlert('Usuario eliminado.', 'success');
+                    fetchUsers();
+                } catch (e) {
+                    console.error("Delete User Error:", e);
+                    showAlert('No se pudo eliminar el usuario.', 'error');
+                }
+            },
+            'Eliminar Usuario'
+        );
     };
 
     const filteredUsers = users.filter(u =>
@@ -135,7 +146,7 @@ const UsersManagement: React.FC = () => {
                             <input required type="email" placeholder="Correo Electrónico" value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} className="form-input" />
                             <input required type="password" placeholder="Contraseña Inicial" value={formData.password} onChange={e => setFormData({ ...formData, password: e.target.value })} className="form-input" />
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                                <select value={formData.role} onChange={e => setFormData({ ...formData, role: e.target.value })} className="form-input" style={{ appearance: 'auto' }}>
+                                <select value={formData.role} onChange={e => setFormData({ ...formData, role: e.target.value as 'Super admin' | 'Admin' | 'Consultor' })} className="form-input" style={{ appearance: 'auto' }}>
                                     <option value="Consultor">Consultor</option>
                                     <option value="Admin">Admin</option>
                                     <option value="Super admin">Super Admin</option>
