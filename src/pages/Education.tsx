@@ -5,10 +5,12 @@ import { useAuth } from '../context/AuthContext';
 import { canCreate, canEdit, canDelete } from '../utils/permissions';
 import { getOrInitDB, logAction, Education as EducationItem } from '../db/db';
 import { NotificationService } from '../utils/NotificationService';
+import { useAlert } from '../context/AlertContext';
 
 const Education: React.FC = () => {
     const { user } = useAuth();
     const navigate = useNavigate();
+    const { showAlert, showConfirm } = useAlert();
     const [education, setEducation] = useState<EducationItem[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -39,6 +41,7 @@ const Education: React.FC = () => {
             setEducation(rows || []);
         } catch (e) {
             console.error("Fetch Education Error:", e);
+            showAlert('Error al cargar los datos de educación.', 'error');
         } finally {
             setLoading(false);
         }
@@ -64,17 +67,23 @@ const Education: React.FC = () => {
 
     const handleDelete = async (id: number, title: string) => {
         if (!canDelete(user?.role)) return;
-        if (window.confirm('¿Seguro que deseas eliminar este registro?')) {
-            try {
-                const db = await getOrInitDB();
-                await db.exec({ sql: 'DELETE FROM education WHERE id = ?', bind: [id] });
-                await logAction(user?.name || 'Sistema', 'Eliminó Educación', 'Educación', `Eliminó: ${title}`);
-                fetchEducation();
-            } catch (e) {
-                console.error("Delete Error:", e);
-                alert("Error al eliminar el registro.");
-            }
-        }
+
+        showConfirm(
+            `¿Estás seguro de que deseas eliminar "${title}" de tus registros académicos?`,
+            async () => {
+                try {
+                    const db = await getOrInitDB();
+                    await db.exec({ sql: 'DELETE FROM education WHERE id = ?', bind: [id] });
+                    await logAction(user?.name || 'Sistema', 'Eliminó Educación', 'Educación', `Eliminó: ${title}`);
+                    showAlert('Registro eliminado.', 'success');
+                    fetchEducation();
+                } catch (e) {
+                    console.error("Delete Error:", e);
+                    showAlert('Error al eliminar el registro.', 'error');
+                }
+            },
+            'Eliminar Registro'
+        );
     };
 
     const handleSave = async (e: React.FormEvent) => {
@@ -88,6 +97,7 @@ const Education: React.FC = () => {
                     bind: [formData.title, formData.institution, formData.year, formData.type, formData.status, editingItem.id]
                 });
                 await logAction(user?.name || 'Sistema', 'Actualizó Educación', 'Educación', `Editó: ${formData.title}`);
+                showAlert('Registro actualizado.', 'success');
             } else {
                 if (!canCreate(user?.role)) return;
                 await db.exec({
@@ -100,12 +110,13 @@ const Education: React.FC = () => {
                     body: `Se ha registrado: ${formData.title}`,
                     tag: 'new-edu'
                 });
+                showAlert('Nueva educación registrada con éxito.', 'success');
             }
             setIsModalOpen(false);
             fetchEducation();
         } catch (e) {
             console.error("Save Error:", e);
-            alert("Error al guardar: " + (e instanceof Error ? e.message : 'Error desconocido'));
+            showAlert('Error al guardar el registro.', 'error');
         }
     };
 
