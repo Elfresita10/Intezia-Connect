@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Trophy, CheckCircle2, Clock } from 'lucide-react';
+import { Trophy, CheckCircle2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getOrInitDB, Project } from '../db/db';
