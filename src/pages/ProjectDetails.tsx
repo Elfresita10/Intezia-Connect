@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Clock, CheckCircle2, CircleDashed, AlertCircle, Plus, Edit2, Trash2, X, User as UserIcon } from 'lucide-react';
 import { getOrInitDB, logAction, Project, ProjectTask } from '../db/db';
 import { useAuth } from '../context/AuthContext';
-import { canCreate, canDelete } from '../utils/permissions';
+import { canDelete } from '../utils/permissions';
 
 const ProjectDetails: React.FC = () => {
     const { id } = useParams<{ id: string }>();
