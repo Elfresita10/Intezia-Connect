@@ -4,11 +4,13 @@ import { ArrowLeft, PlayCircle, FileText, Plus, Trash2, X, GraduationCap } from 
 import { getOrInitDB, logAction, Education as EducationItem, CourseModule, CourseResource } from '../db/db';
 import { useAuth } from '../context/AuthContext';
 import { canCreate, canDelete } from '../utils/permissions';
+import { useAlert } from '../context/AlertContext';
 
 const EducationDetails: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const { user } = useAuth();
+    const { showAlert, showConfirm } = useAlert();
 
     const [course, setCourse] = useState<EducationItem | null>(null);
     const [modules, setModules] = useState<CourseModule[]>([]);
@@ -49,6 +51,7 @@ const EducationDetails: React.FC = () => {
             setResources(resourceRows || []);
         } catch (e) {
             console.error("Fetch Education Details Error:", e);
+            showAlert('Error al cargar detalles del curso.', 'error');
         } finally {
             setLoading(false);
         }
@@ -67,22 +70,35 @@ const EducationDetails: React.FC = () => {
                 bind: [id, moduleFormData.title, moduleFormData.video_url]
             });
             await logAction(user?.name || 'Sistema', 'Añadió Módulo', 'Educación', `Añadió clase: ${moduleFormData.title}`);
+            showAlert('Clase añadida correctamente.', 'success');
             setIsModuleModalOpen(false);
             setModuleFormData({ title: '', video_url: '' });
             fetchCourseData();
-        } catch (e) { console.error(e); }
+        } catch (e) {
+            console.error(e);
+            showAlert('Error al añadir la clase.', 'error');
+        }
     };
 
     const handleDeleteModule = async (moduleId: number, title: string) => {
         if (!canDelete(user?.role)) return;
-        if (window.confirm(`¿Eliminar clase ${title}?`)) {
-            try {
-                const db = await getOrInitDB();
-                await db.exec({ sql: 'DELETE FROM course_modules WHERE id = ?', bind: [moduleId] });
-                await logAction(user?.name || 'Sistema', 'Eliminó Módulo', 'Educación', `Eliminó clase: ${title}`);
-                fetchCourseData();
-            } catch (e) { console.error(e); }
-        }
+
+        showConfirm(
+            `¿Estás seguro de que deseas eliminar la clase "${title}"?`,
+            async () => {
+                try {
+                    const db = await getOrInitDB();
+                    await db.exec({ sql: 'DELETE FROM course_modules WHERE id = ?', bind: [moduleId] });
+                    await logAction(user?.name || 'Sistema', 'Eliminó Módulo', 'Educación', `Eliminó clase: ${title}`);
+                    showAlert('Clase eliminada.', 'success');
+                    fetchCourseData();
+                } catch (e) {
+                    console.error(e);
+                    showAlert('Error al eliminar la clase.', 'error');
+                }
+            },
+            'Eliminar Clase'
+        );
     };
 
     const handleSaveResource = async (e: React.FormEvent) => {
@@ -94,22 +110,35 @@ const EducationDetails: React.FC = () => {
                 bind: [id, resourceFormData.name, resourceFormData.url]
             });
             await logAction(user?.name || 'Sistema', 'Añadió Recurso', 'Educación', `Añadió recurso: ${resourceFormData.name}`);
+            showAlert('Recurso añadido.', 'success');
             setIsResourceModalOpen(false);
             setResourceFormData({ name: '', url: '' });
             fetchCourseData();
-        } catch (e) { console.error(e); }
+        } catch (e) {
+            console.error(e);
+            showAlert('Error al añadir recurso.', 'error');
+        }
     };
 
     const handleDeleteResource = async (resourceId: number, name: string) => {
         if (!canDelete(user?.role)) return;
-        if (window.confirm(`¿Eliminar recurso ${name}?`)) {
-            try {
-                const db = await getOrInitDB();
-                await db.exec({ sql: 'DELETE FROM course_resources WHERE id = ?', bind: [resourceId] });
-                await logAction(user?.name || 'Sistema', 'Eliminó Recurso', 'Educación', `Eliminó recurso: ${name}`);
-                fetchCourseData();
-            } catch (e) { console.error(e); }
-        }
+
+        showConfirm(
+            `¿Deseas eliminar el recurso "${name}"?`,
+            async () => {
+                try {
+                    const db = await getOrInitDB();
+                    await db.exec({ sql: 'DELETE FROM course_resources WHERE id = ?', bind: [resourceId] });
+                    await logAction(user?.name || 'Sistema', 'Eliminó Recurso', 'Educación', `Eliminó recurso: ${name}`);
+                    showAlert('Recurso eliminado.', 'success');
+                    fetchCourseData();
+                } catch (e) {
+                    console.error(e);
+                    showAlert('Error al eliminar recurso.', 'error');
+                }
+            },
+            'Eliminar Recurso'
+        );
     };
 
     if (loading) return <div className="skeleton" style={{ height: '400px', borderRadius: '20px' }}></div>;
