@@ -100,7 +100,8 @@ const Projects: React.FC = () => {
             fetchProjects();
         } catch (e) {
             console.error('Save error:', e);
-            alert('Error al guardar datos. Revisa la consola.');
+            const msg = e instanceof Error ? e.message : 'Error desconocido';
+            alert('Error al guardar datos: ' + msg);
         }
     };
 
