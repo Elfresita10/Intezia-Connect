@@ -29,26 +29,31 @@ const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
   return <Layout>{children}</Layout>;
 };
 
+import { AlertProvider } from './context/AlertContext';
+import GlobalAlert from './components/GlobalAlert';
+
 function App() {
   return (
-    <AuthProvider>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-
-          <Route path="/" element={<PrivateRoute><Navigate to="/dashboard" replace /></PrivateRoute>} />
-          <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
-          <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
-          <Route path="/projects" element={<PrivateRoute><Projects /></PrivateRoute>} />
-          <Route path="/projects/:id" element={<PrivateRoute><ProjectDetails /></PrivateRoute>} />
-          <Route path="/education" element={<PrivateRoute><Education /></PrivateRoute>} />
-          <Route path="/education/:id" element={<PrivateRoute><EducationDetails /></PrivateRoute>} />
-          <Route path="/fundamentals" element={<PrivateRoute><Fundamentals /></PrivateRoute>} />
-          <Route path="/users" element={<PrivateRoute><Users /></PrivateRoute>} />
-          <Route path="/audit-log" element={<PrivateRoute><AuditLog /></PrivateRoute>} />
-        </Routes>
-      </BrowserRouter>
-    </AuthProvider>
+    <AlertProvider>
+      <AuthProvider>
+        <BrowserRouter>
+          <GlobalAlert />
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route path="/" element={<PrivateRoute><Navigate to="/dashboard" replace /></PrivateRoute>} />
+            <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+            <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
+            <Route path="/projects" element={<PrivateRoute><Projects /></PrivateRoute>} />
+            <Route path="/projects/:id" element={<PrivateRoute><ProjectDetails /></PrivateRoute>} />
+            <Route path="/education" element={<PrivateRoute><Education /></PrivateRoute>} />
+            <Route path="/education/:id" element={<PrivateRoute><EducationDetails /></PrivateRoute>} />
+            <Route path="/fundamentals" element={<PrivateRoute><Fundamentals /></PrivateRoute>} />
+            <Route path="/users" element={<PrivateRoute><Users /></PrivateRoute>} />
+            <Route path="/audit-log" element={<PrivateRoute><AuditLog /></PrivateRoute>} />
+          </Routes>
+        </BrowserRouter>
+      </AuthProvider>
+    </AlertProvider>
   );
 }
 
