@@ -91,109 +91,99 @@ export const initDB = async (): Promise<UnifiedDB> => {
       const dbUrl = import.meta.env.VITE_DB_URL;
       const dbToken = import.meta.env.VITE_DB_AUTH_TOKEN;
 
+      const schemaStatements = [
+        "CREATE TABLE IF NOT EXISTS profile (id INTEGER PRIMARY KEY, name TEXT, title TEXT, email TEXT, phone TEXT, bio TEXT)",
+        "CREATE TABLE IF NOT EXISTS projects (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT, client TEXT, status TEXT, progress INTEGER, dueDate TEXT)",
+        "CREATE TABLE IF NOT EXISTS project_tasks (id INTEGER PRIMARY KEY AUTOINCREMENT, project_id INTEGER, title TEXT, description TEXT, status TEXT, assigned_to TEXT, FOREIGN KEY (project_id) REFERENCES projects(id))",
+        "CREATE TABLE IF NOT EXISTS education (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT, institution TEXT, year TEXT, type TEXT, status TEXT)",
+        "CREATE TABLE IF NOT EXISTS course_modules (id INTEGER PRIMARY KEY AUTOINCREMENT, education_id INTEGER, title TEXT, video_url TEXT)",
+        "CREATE TABLE IF NOT EXISTS course_resources (id INTEGER PRIMARY KEY AUTOINCREMENT, education_id INTEGER, name TEXT, url TEXT)",
+        "CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, password TEXT, role TEXT, email TEXT UNIQUE, phone TEXT, bio TEXT, title TEXT, avatarBase64 TEXT)",
+        "CREATE TABLE IF NOT EXISTS audit_logs (id INTEGER PRIMARY KEY AUTOINCREMENT, user_name TEXT, action TEXT, entity TEXT, details TEXT, timestamp DATETIME DEFAULT CURRENT_TIMESTAMP)",
+        "CREATE TABLE IF NOT EXISTS fundamentals (id INTEGER PRIMARY KEY AUTOINCREMENT, type TEXT, category TEXT, title TEXT, description TEXT, url TEXT)"
+      ];
+
       if (dbUrl && dbToken) {
         console.log('Connecting to Remote Turso Database...');
-        const remoteClient = createClient({
-          url: dbUrl,
-          authToken: dbToken,
-        });
+        const remoteClient = createClient({ url: dbUrl, authToken: dbToken });
 
         const unifiedRemote: UnifiedDB = {
           type: 'remote',
           exec: async (options) => {
             const sql = typeof options === 'string' ? options : options.sql;
             const bind = typeof options === 'string' ? [] : (options.bind || []);
-
             try {
-              // LibSQL execute
               const result = await remoteClient.execute({ sql, args: bind });
-
-              // Map back to what the app expects if resultRows is requested
               if (typeof options !== 'string' && options.returnValue === 'resultRows') {
                 return result.rows.map(row => {
                   const obj: any = {};
-                  result.columns.forEach((col, idx) => {
-                    obj[col] = row[idx];
-                  });
+                  result.columns.forEach((col, idx) => { obj[col] = row[idx]; });
                   return obj;
                 });
               }
               return result;
             } catch (execError: any) {
-              console.error(`Database Execution Error [${sql}]:`, execError);
+              console.error(`Turso Exec Error [${sql}]:`, execError);
               throw execError;
             }
           }
         };
 
-        // Initialize Schema on remote if needed
-        await unifiedRemote.exec(`
-            CREATE TABLE IF NOT EXISTS profile (id INTEGER PRIMARY KEY, name TEXT, title TEXT, email TEXT, phone TEXT, bio TEXT);
-            CREATE TABLE IF NOT EXISTS projects (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT, client TEXT, status TEXT, progress INTEGER, dueDate TEXT);
-            CREATE TABLE IF NOT EXISTS project_tasks (id INTEGER PRIMARY KEY AUTOINCREMENT, project_id INTEGER, title TEXT, description TEXT, status TEXT, assigned_to TEXT, FOREIGN KEY (project_id) REFERENCES projects(id));
-            CREATE TABLE IF NOT EXISTS education (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT, institution TEXT, year TEXT, type TEXT, status TEXT);
-            CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, password TEXT, role TEXT, email TEXT UNIQUE, phone TEXT, bio TEXT, title TEXT, avatarBase64 TEXT);
-            CREATE TABLE IF NOT EXISTS audit_logs (id INTEGER PRIMARY KEY AUTOINCREMENT, user_name TEXT, action TEXT, entity TEXT, details TEXT, timestamp DATETIME DEFAULT CURRENT_TIMESTAMP);
-            CREATE TABLE IF NOT EXISTS fundamentals (id INTEGER PRIMARY KEY AUTOINCREMENT, type TEXT, category TEXT, title TEXT, description TEXT, url TEXT);
-            CREATE TABLE IF NOT EXISTS course_modules (id INTEGER PRIMARY KEY AUTOINCREMENT, education_id INTEGER, title TEXT, video_url TEXT);
-            CREATE TABLE IF NOT EXISTS course_resources (id INTEGER PRIMARY KEY AUTOINCREMENT, education_id INTEGER, name TEXT, url TEXT);
-        `);
+        // Initialize Schema step-by-step
+        for (const sql of schemaStatements) {
+          try {
+            await remoteClient.execute(sql);
+          } catch (e) {
+            console.warn(`Schema init warning for [${sql.substring(0, 30)}...]:`, e);
+          }
+        }
 
-        // Check for users, seed if absolutely empty
-        const userCheck = await unifiedRemote.exec({ sql: "SELECT count(*) as count FROM users", returnValue: 'resultRows' });
-        if (userCheck[0].count === 0) {
-          console.log('Seeding initial remote users...');
-          await unifiedRemote.exec(`
-                INSERT OR IGNORE INTO users (id, name, password, role, email, phone, bio, title) VALUES 
-                (1, 'Administrador', 'admin', 'Super admin', 'admin@intezia.com', '+1 555 000 0000', 'Administrador principal del sistema.', 'Director General'),
-                (2, 'Jean Valery', '123456', 'Super admin', 'jean@intezia.com', '+1 555 111 2222', 'Estratega de negocios y consultor senior.', 'CEO & Partner');
-            `);
+        // Seed users if empty
+        try {
+          const userCheck = await unifiedRemote.exec({ sql: "SELECT count(*) as count FROM users", returnValue: 'resultRows' });
+          if (userCheck[0].count === 0) {
+            console.log('Seeding initial remote users...');
+            await unifiedRemote.exec({
+              sql: "INSERT OR IGNORE INTO users (id, name, password, role, email, phone, bio, title) VALUES (?, ?, ?, ?, ?, ?, ?, ?), (?, ?, ?, ?, ?, ?, ?, ?)",
+              bind: [
+                1, 'Administrador', 'admin', 'Super admin', 'admin@intezia.com', '+1 555 000 0000', 'Administrador principal del sistema.', 'Director General',
+                2, 'Jean Valery', '123456', 'Super admin', 'jean@intezia.com', '+1 555 111 2222', 'Estratega de negocios y consultor senior.', 'CEO & Partner'
+              ]
+            });
+          }
+        } catch (seedErr) {
+          console.error("Seed error:", seedErr);
         }
 
         dbInstance = unifiedRemote;
         return dbInstance;
       }
 
-      // Fallback to Local WASM
-      console.log('Using Local SQLite WASM (OPFS fallback)...');
+      // Local Fallback
+      console.log('Using Local SQLite WASM...');
       const sqlite3 = await sqlite3InitModule();
-      let localDb;
-      if ('opfs' in sqlite3.oo1.DB) {
-        localDb = new sqlite3.oo1.OpfsDb('/consultant_app_v5.sqlite3');
-      } else {
-        localDb = new sqlite3.oo1.DB('/consultant_app_v5.sqlite3', 'ct');
-      }
+      const dbPath = '/consultant_app_v10.sqlite3'; // Bump version to force fresh schema if needed
+      const localDb = 'opfs' in sqlite3.oo1.DB ? new sqlite3.oo1.OpfsDb(dbPath) : new sqlite3.oo1.DB(dbPath, 'ct');
 
       const unifiedLocal: UnifiedDB = {
         type: 'local',
         exec: (options) => {
-          if (typeof options === 'string') {
-            return localDb.exec(options);
-          }
+          if (typeof options === 'string') return localDb.exec(options);
           return localDb.exec({
             sql: options.sql,
-            bind: options.bind,
+            bind: options.bind as any,
             returnValue: options.returnValue as any,
             rowMode: options.rowMode as any
           });
         }
       };
 
-      // Initialize Schema Local
-      unifiedLocal.exec(`
-        CREATE TABLE IF NOT EXISTS profile (id INTEGER PRIMARY KEY, name TEXT, title TEXT, email TEXT, phone TEXT, bio TEXT);
-        CREATE TABLE IF NOT EXISTS projects (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT, client TEXT, status TEXT, progress INTEGER, dueDate TEXT);
-        CREATE TABLE IF NOT EXISTS project_tasks (id INTEGER PRIMARY KEY AUTOINCREMENT, project_id INTEGER, title TEXT, description TEXT, status TEXT, assigned_to TEXT, FOREIGN KEY (project_id) REFERENCES projects(id));
-        CREATE TABLE IF NOT EXISTS education (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT, institution TEXT, year TEXT, type TEXT, status TEXT);
-        CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT UNIQUE, password TEXT, role TEXT, email TEXT UNIQUE, phone TEXT, bio TEXT, title TEXT, avatarBase64 TEXT);
-        CREATE TABLE IF NOT EXISTS audit_logs (id INTEGER PRIMARY KEY AUTOINCREMENT, user_name TEXT, action TEXT, entity TEXT, details TEXT, timestamp DATETIME DEFAULT CURRENT_TIMESTAMP);
-        CREATE TABLE IF NOT EXISTS fundamentals (id INTEGER PRIMARY KEY AUTOINCREMENT, type TEXT, category TEXT, title TEXT, description TEXT, url TEXT);
-        CREATE TABLE IF NOT EXISTS course_modules (id INTEGER PRIMARY KEY AUTOINCREMENT, education_id INTEGER, title TEXT, video_url TEXT);
-        CREATE TABLE IF NOT EXISTS course_resources (id INTEGER PRIMARY KEY AUTOINCREMENT, education_id INTEGER, name TEXT, url TEXT);
-      `);
-
+      for (const sql of schemaStatements) {
+        unifiedLocal.exec(sql);
+      }
       dbInstance = unifiedLocal;
       return dbInstance;
+
     } catch (err: any) {
       console.error("Database initialization failed:", err);
       initPromise = null;
@@ -204,12 +194,10 @@ export const initDB = async (): Promise<UnifiedDB> => {
 };
 
 export const getDb = (): UnifiedDB => {
-  if (!dbInstance) {
-    console.warn('Database accessed before initialization. This might cause issues.');
-  }
+  if (!dbInstance) console.warn('Database accessed before initialization!');
   return dbInstance || {
     type: 'local',
-    exec: () => { throw new Error('Database not ready. Please wait for initialization.'); }
+    exec: () => { throw new Error('Database not ready.'); }
   };
 };
 
