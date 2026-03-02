@@ -104,27 +104,29 @@ export const initDB = async (): Promise<UnifiedDB> => {
             const sql = typeof options === 'string' ? options : options.sql;
             const bind = typeof options === 'string' ? [] : (options.bind || []);
 
-            // LibSQL execute
-            const result = await remoteClient.execute({ sql, args: bind });
+            try {
+              // LibSQL execute
+              const result = await remoteClient.execute({ sql, args: bind });
 
-            // Map back to what the app expects if resultRows is requested
-            if (typeof options !== 'string' && options.returnValue === 'resultRows') {
-              return result.rows.map(row => {
-                const obj: any = {};
-                result.columns.forEach((col, idx) => {
-                  obj[col] = row[idx];
+              // Map back to what the app expects if resultRows is requested
+              if (typeof options !== 'string' && options.returnValue === 'resultRows') {
+                return result.rows.map(row => {
+                  const obj: any = {};
+                  result.columns.forEach((col, idx) => {
+                    obj[col] = row[idx];
+                  });
+                  return obj;
                 });
-                return obj;
-              });
+              }
+              return result;
+            } catch (execError: any) {
+              console.error(`Database Execution Error [${sql}]:`, execError);
+              throw execError;
             }
-            return result;
           }
         };
 
         // Initialize Schema on remote if needed
-        // REPAIR BLOCK: Forcing table recreation to fix email unique constraint issues
-        // await unifiedRemote.exec("DROP TABLE IF EXISTS users;"); 
-
         await unifiedRemote.exec(`
             CREATE TABLE IF NOT EXISTS profile (id INTEGER PRIMARY KEY, name TEXT, title TEXT, email TEXT, phone TEXT, bio TEXT);
             CREATE TABLE IF NOT EXISTS projects (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT, client TEXT, status TEXT, progress INTEGER, dueDate TEXT);
@@ -190,25 +192,6 @@ export const initDB = async (): Promise<UnifiedDB> => {
         CREATE TABLE IF NOT EXISTS course_resources (id INTEGER PRIMARY KEY AUTOINCREMENT, education_id INTEGER, name TEXT, url TEXT);
       `);
 
-      // Seed Local Data (keeping existing seeding logic)
-      const profileRows = unifiedLocal.exec({ sql: 'SELECT * FROM profile', returnValue: 'resultRows' });
-      if (profileRows.length === 0) {
-        unifiedLocal.exec(`
-          INSERT INTO profile (id, name, title, email, phone, bio) 
-          VALUES (1, 'Carlos Jiménez', 'Consultor Senior IT', 'carlos.j@example.com', '+1 234 567 8900', 'Especialista en transformación digital y migración a la nube con más de 10 años de experiencia ayudando a empresas Fortune 500.');
-          INSERT INTO projects (title, client, status, progress, dueDate) VALUES 
-          ('Migración Cloud ERP', 'TechCorp Industries', 'En Progreso', 65, '2026-10-15'),
-          ('Auditoría de Ciberseguridad', 'Banco Global', 'Completado', 100, '2026-01-20'),
-          ('Implementación CRM', 'Retail Group SA', 'En Progreso', 30, '2026-11-30');
-        `);
-
-        unifiedLocal.exec(`
-          INSERT INTO users (id, name, password, role, email, phone, bio, title) VALUES 
-          (1, 'Administrador', 'admin', 'Super admin', 'admin@intezia.com', '+1 555 000 0000', 'Administrador principal del sistema.', 'Director General'),
-          (2, 'Jean Valery', '123456', 'Super admin', 'jean@intezia.com', '+1 555 111 2222', 'Estratega de negocios y consultor senior.', 'CEO & Partner');
-        `);
-      }
-
       dbInstance = unifiedLocal;
       return dbInstance;
     } catch (err: any) {
@@ -221,13 +204,23 @@ export const initDB = async (): Promise<UnifiedDB> => {
 };
 
 export const getDb = (): UnifiedDB => {
-  if (!dbInstance) throw new Error('Database not initialized yet.');
-  return dbInstance;
+  if (!dbInstance) {
+    console.warn('Database accessed before initialization. This might cause issues.');
+  }
+  return dbInstance || {
+    type: 'local',
+    exec: () => { throw new Error('Database not ready. Please wait for initialization.'); }
+  };
+};
+
+export const getOrInitDB = async (): Promise<UnifiedDB> => {
+  if (dbInstance) return dbInstance;
+  return await initDB();
 };
 
 export const logAction = async (user_name: string, action: string, entity: string, details: string) => {
   try {
-    const db = getDb();
+    const db = await getOrInitDB();
     await db.exec({
       sql: 'INSERT INTO audit_logs (user_name, action, entity, details) VALUES (?, ?, ?, ?)',
       bind: [user_name, action, entity, details]
