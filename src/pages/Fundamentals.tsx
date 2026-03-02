@@ -3,9 +3,11 @@ import { useAuth } from '../context/AuthContext';
 import { Fundamental, getOrInitDB, logAction } from '../db/db';
 import { canCreate, canEdit, canDelete } from '../utils/permissions';
 import { Plus, Edit2, Trash2, ExternalLink, ChevronDown, ChevronRight, BookOpen, Layers, X } from 'lucide-react';
+import { useAlert } from '../context/AlertContext';
 
 const Fundamentals: React.FC = () => {
     const { user } = useAuth();
+    const { showAlert, showConfirm } = useAlert();
     const [fundamentals, setFundamentals] = useState<Fundamental[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -36,6 +38,7 @@ const Fundamentals: React.FC = () => {
             setFundamentals(rows || []);
         } catch (e) {
             console.error("Fetch Fundamentals Error:", e);
+            showAlert('No se pudieron cargar los fundamentos.', 'error');
         } finally {
             setLoading(false);
         }
@@ -61,16 +64,23 @@ const Fundamentals: React.FC = () => {
 
     const handleDelete = async (id: number, title: string) => {
         if (!canDelete(user?.role)) return;
-        if (window.confirm('¿Seguro que deseas eliminar este proceso?')) {
-            try {
-                const db = await getOrInitDB();
-                await db.exec({ sql: 'DELETE FROM fundamentals WHERE id = ?', bind: [id] });
-                await logAction(user?.name || 'Sistema', 'Eliminó Fundamento', 'Fundamentos', `Eliminó: ${title}`);
-                fetchFundamentals();
-            } catch (e) {
-                console.error("Delete Fundamental Error:", e);
-            }
-        }
+
+        showConfirm(
+            `¿Estás seguro de que deseas eliminar el fundamento "${title}"?`,
+            async () => {
+                try {
+                    const db = await getOrInitDB();
+                    await db.exec({ sql: 'DELETE FROM fundamentals WHERE id = ?', bind: [id] });
+                    await logAction(user?.name || 'Sistema', 'Eliminó Fundamento', 'Fundamentos', `Eliminó: ${title}`);
+                    showAlert('Fundamento eliminado.', 'success');
+                    fetchFundamentals();
+                } catch (e) {
+                    console.error("Delete Fundamental Error:", e);
+                    showAlert('Error al eliminar el fundamento.', 'error');
+                }
+            },
+            'Eliminar Fundamento'
+        );
     };
 
     const handleSave = async (e: React.FormEvent) => {
@@ -84,6 +94,7 @@ const Fundamentals: React.FC = () => {
                     bind: [formData.type, formData.category, formData.title, formData.description, formData.url, editingItem.id]
                 });
                 await logAction(user?.name || 'Sistema', 'Actualizó Fundamento', 'Fundamentos', `Editó: ${formData.title}`);
+                showAlert('Cambios guardados.', 'success');
             } else {
                 if (!canCreate(user?.role)) return;
                 await db.exec({
@@ -91,12 +102,13 @@ const Fundamentals: React.FC = () => {
                     bind: [formData.type, formData.category, formData.title, formData.description, formData.url]
                 });
                 await logAction(user?.name || 'Sistema', 'Creó Fundamento', 'Fundamentos', `Creó: ${formData.title}`);
+                showAlert('Nuevo fundamento creado.', 'success');
             }
             setIsModalOpen(false);
             fetchFundamentals();
         } catch (e) {
             console.error("Save Fundamental Error:", e);
-            alert("Error al guardar.");
+            showAlert('Error al guardar los cambios.', 'error');
         }
     };
 
