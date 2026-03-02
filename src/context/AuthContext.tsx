@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { User, getDb } from '../db/db';
+import { User, getOrInitDB } from '../db/db';
 
 interface AuthContextType {
     user: User | null;
@@ -18,28 +18,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     useEffect(() => {
         const initializeAuthAndDB = async () => {
             try {
-                // 1. Always ensure DB is initialized before anything else
-                const { getOrInitDB } = await import('../db/db');
                 const db = await getOrInitDB();
-
-                // 2. Check for stored user session
                 const storedUserId = localStorage.getItem('auth_user_id');
                 if (storedUserId) {
                     const result = await db.exec({
                         sql: 'SELECT * FROM users WHERE id = ?',
                         bind: [parseInt(storedUserId)],
-                        returnValue: 'resultRows',
-                        rowMode: 'object'
+                        returnValue: 'resultRows'
                     });
 
-                    if (result.length > 0) {
+                    if (result && result.length > 0) {
                         setUser(result[0] as unknown as User);
                     } else {
                         localStorage.removeItem('auth_user_id');
                     }
                 }
             } catch (error) {
-                console.error("Error during DB initialization or session restore:", error);
+                console.error("Auth Init Error:", error);
             } finally {
                 setIsLoading(false);
             }
@@ -49,46 +44,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, []);
 
     const login = async (name: string, password?: string) => {
-        // 1. Try normal DB login first
         try {
-            const db = getDb();
+            const db = await getOrInitDB();
             const result = await db.exec({
                 sql: 'SELECT * FROM users WHERE (name = ? OR email = ?) AND password = ?',
                 bind: [name, name, password],
-                returnValue: 'resultRows',
-                rowMode: 'object'
+                returnValue: 'resultRows'
             });
 
-            if (result.length > 0) {
+            if (result && result.length > 0) {
                 const loggedInUser = result[0] as unknown as User;
                 setUser(loggedInUser);
                 localStorage.setItem('auth_user_id', loggedInUser.id.toString());
                 return true;
             }
         } catch (error) {
-            console.error("Normal login failed, attempting fallback:", error);
+            console.error("Login failed:", error);
         }
 
-        // 2. Fallback garantizado de acceso Super Admin (Incluso si OPFS SQLite crashea)
-        const fallbackMap: Record<string, { id: number, realName: string, role: string }> = {
-            'admin@intezia.com': { id: 1, realName: 'Administrador', role: 'Super admin' },
-            'jean@intezia.com': { id: 2, realName: 'Jean Valery', role: 'Super admin' },
-            'maria@intezia.com': { id: 3, realName: 'Maria Garcia', role: 'Admin' },
-            'alejandro@intezia.com': { id: 4, realName: 'Alejandro Soto', role: 'Admin' }
+        // Hardcoded Fallback for Emergency access
+        const fallbacks: Record<string, any> = {
+            'admin@intezia.com': { id: 1, name: 'Administrador', role: 'Super admin' },
+            'jean@intezia.com': { id: 2, name: 'Jean Valery', role: 'Super admin' }
         };
 
-        const fallback = fallbackMap[name];
-        if (
-            fallback && (password === '123456' || password === 'admin')
-        ) {
-            const fallbackUser = {
-                id: fallback.id,
-                name: fallback.realName,
-                role: fallback.role,
-                email: name
-            } as User;
-            setUser(fallbackUser);
-            localStorage.setItem('auth_user_id', fallbackUser.id.toString());
+        if (fallbacks[name] && (password === '123456' || password === 'admin')) {
+            const fUser = { ...fallbacks[name], email: name } as User;
+            setUser(fUser);
+            localStorage.setItem('auth_user_id', fUser.id.toString());
             return true;
         }
 
@@ -102,22 +85,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const refreshUser = async () => {
         const storedUserId = localStorage.getItem('auth_user_id');
-        if (storedUserId) {
-            try {
-                const db = getDb();
-                const result = await db.exec({
-                    sql: 'SELECT * FROM users WHERE id = ?',
-                    bind: [parseInt(storedUserId)],
-                    returnValue: 'resultRows',
-                    rowMode: 'object'
-                });
-
-                if (result.length > 0) {
-                    setUser(result[0] as unknown as User);
-                }
-            } catch (error) {
-                console.error("Error refreshing user:", error);
+        if (!storedUserId) return;
+        try {
+            const db = await getOrInitDB();
+            const result = await db.exec({
+                sql: 'SELECT * FROM users WHERE id = ?',
+                bind: [parseInt(storedUserId)],
+                returnValue: 'resultRows'
+            });
+            if (result && result.length > 0) {
+                setUser(result[0] as unknown as User);
             }
+        } catch (error) {
+            console.error("Refresh User Error:", error);
         }
     };
 
@@ -130,8 +110,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
 export const useAuth = () => {
     const context = useContext(AuthContext);
-    if (context === undefined) {
-        throw new Error('useAuth must be used within an AuthProvider');
-    }
+    if (context === undefined) throw new Error('useAuth error');
     return context;
 };
