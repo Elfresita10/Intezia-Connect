@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Mail, Phone, Edit3, Camera, Save, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { getDb, User, logAction } from '../db/db';
+import { getOrInitDB, User, logAction } from '../db/db';
 import { canEdit } from '../utils/permissions';
 
 const Profile: React.FC = () => {
@@ -11,36 +11,37 @@ const Profile: React.FC = () => {
     const [editForm, setEditForm] = useState<Partial<User>>({});
     const [allUsers, setAllUsers] = useState<User[]>([]);
     const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
+    const [loading, setLoading] = useState(true);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const fetchProfile = async (userId: number) => {
         try {
-            const db = getDb();
+            const db = await getOrInitDB();
             const result = await db.exec({
                 sql: 'SELECT * FROM users WHERE id = ?',
                 bind: [userId],
-                returnValue: 'resultRows',
-                rowMode: 'object'
+                returnValue: 'resultRows'
             });
-            if (result.length > 0) {
+            if (result && result.length > 0) {
                 const fetchedUser = result[0] as unknown as User;
                 setProfile(fetchedUser);
                 setEditForm(fetchedUser);
             }
         } catch (error) {
             console.error("Error fetching profile:", error);
+        } finally {
+            setLoading(false);
         }
     };
 
     const fetchAllUsers = async () => {
         try {
-            const db = getDb();
+            const db = await getOrInitDB();
             const result = await db.exec({
                 sql: 'SELECT id, name, title FROM users',
-                returnValue: 'resultRows',
-                rowMode: 'object'
+                returnValue: 'resultRows'
             });
-            setAllUsers(result as unknown as User[]);
+            setAllUsers(result || []);
         } catch (error) {
             console.error("Error fetching all users:", error);
         }
@@ -57,6 +58,7 @@ const Profile: React.FC = () => {
     }, [authUser]);
 
     const handleUserSelect = (id: number) => {
+        setLoading(true);
         setSelectedUserId(id);
         fetchProfile(id);
         setIsEditing(false);
@@ -116,74 +118,62 @@ const Profile: React.FC = () => {
         if (!displayProfile || !authUser) return;
 
         try {
-            const db = getDb();
+            const db = await getOrInitDB();
             const targetId = displayProfile.id;
-            console.log("Desperately trying to save profile for ID:", targetId);
 
-            // Use INSERT OR REPLACE to handle cases where seeding might have failed
-            // but the user is logged in via memory fallback.
             await db.exec({
-                sql: `INSERT OR REPLACE INTO users (
-                    id, 
-                    name, 
-                    title, 
-                    email, 
-                    phone, 
-                    bio, 
-                    avatarBase64,
-                    role,
-                    password
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, (SELECT password FROM users WHERE id = ?) || '123456')`,
+                sql: `UPDATE users SET 
+                    name = ?, 
+                    title = ?, 
+                    email = ?, 
+                    phone = ?, 
+                    bio = ?, 
+                    avatarBase64 = ?
+                    WHERE id = ?`,
                 bind: [
-                    targetId,
                     editForm.name || displayProfile.name,
                     editForm.title || displayProfile.title,
                     editForm.email || displayProfile.email,
                     editForm.phone || displayProfile.phone,
                     editForm.bio || displayProfile.bio,
                     editForm.avatarBase64 !== undefined ? editForm.avatarBase64 : displayProfile.avatarBase64,
-                    displayProfile.role,
                     targetId
                 ]
             });
 
             await logAction(
                 authUser.name,
-                'Actualizó Perfil (UPSERT)',
+                'Actualizó Perfil',
                 'Usuarios',
-                `Actualizó el perfil de ${displayProfile.name} (ID: ${targetId})`
+                `Perfil actualizado: ${displayProfile.name}`
             );
 
-            // Refetch data from DB immediately
             await fetchProfile(targetId);
 
-            // If editing own profile, refresh global auth state
             if (authUser.id === targetId) {
                 await refreshUser();
             }
 
             setIsEditing(false);
-            console.log("Save successful for ID:", targetId);
             alert("Perfil actualizado correctamente");
         } catch (error) {
             console.error("Error saving profile:", error);
-            alert("Error crítico al guardar el perfil. Revisa la consola.");
+            alert("Error al guardar el perfil: " + (error instanceof Error ? error.message : 'Error desconocido'));
         }
     };
 
-    // Use the authUser as a base for fallbacks so the page is never blank
     const displayProfile = profile || (authUser ? {
         id: authUser.id,
         name: authUser.name,
-        email: authUser.email || (authUser.name?.includes('@') ? authUser.name : ''),
+        email: authUser.email || '',
         role: authUser.role,
         title: authUser.title || 'Consultor',
-        bio: authUser.bio || 'Bienvenido a tu perfil profesional.',
-        phone: authUser.phone || 'No especificado',
+        bio: authUser.bio || '',
+        phone: authUser.phone || '',
         avatarBase64: authUser.avatarBase64
     } : null) as User;
 
-    if (!displayProfile) return <div className="skeleton" style={{ height: '300px' }}></div>;
+    if (loading || !displayProfile) return <div className="skeleton" style={{ height: '400px', borderRadius: '20px' }}></div>;
 
     const targetIdForEdit = displayProfile.id;
     const canEditThisProfile = authUser?.id === targetIdForEdit || canEdit(authUser?.role);
@@ -246,9 +236,8 @@ const Profile: React.FC = () => {
                     )}
                 </div>
 
-                <div style={{ position: 'relative', marginBottom: '1.5rem' }}>
+                <div style={{ position: 'relative', marginBottom: '1.5rem', cursor: isEditing ? 'pointer' : 'default' }} onClick={handleAvatarClick}>
                     <div
-                        onClick={handleAvatarClick}
                         style={{
                             width: 140,
                             height: 140,
@@ -261,7 +250,6 @@ const Profile: React.FC = () => {
                             fontWeight: 'bold',
                             color: '#fff',
                             boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
-                            cursor: isEditing ? 'pointer' : 'default',
                             overflow: 'hidden',
                             border: '4px solid var(--bg-surface-glass)'
                         }}
@@ -288,7 +276,6 @@ const Profile: React.FC = () => {
                             type="text"
                             value={editForm.name || ''}
                             onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                            className="text-truncate"
                             style={{
                                 fontSize: '1.8rem',
                                 fontWeight: 'bold',
@@ -303,7 +290,7 @@ const Profile: React.FC = () => {
                             }}
                         />
                     ) : (
-                        <h2 className="text-truncate" style={{ fontSize: '1.8rem', marginBottom: '0.2rem', color: '#fff', padding: '0 20px' }}>{displayProfile.name}</h2>
+                        <h2 className="text-truncate" style={{ fontSize: '1.8rem', marginBottom: '0.2rem', color: '#fff' }}>{displayProfile.name}</h2>
                     )}
 
                     {isEditing ? (
@@ -311,7 +298,6 @@ const Profile: React.FC = () => {
                             type="text"
                             value={editForm.title || ''}
                             onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
-                            className="text-truncate"
                             style={{
                                 fontSize: '0.85rem',
                                 width: '100%',
@@ -325,7 +311,7 @@ const Profile: React.FC = () => {
                             }}
                         />
                     ) : (
-                        <p className="badge text-truncate" style={{ marginBottom: '1.5rem', maxWidth: '80%', marginInline: 'auto' }}>{displayProfile.title}</p>
+                        <p className="badge" style={{ marginBottom: '1.5rem' }}>{displayProfile.title}</p>
                     )}
 
                     {isEditing ? (
@@ -333,25 +319,17 @@ const Profile: React.FC = () => {
                             value={editForm.bio || ''}
                             onChange={(e) => setEditForm({ ...editForm, bio: e.target.value })}
                             rows={4}
-                            style={{
-                                width: '100%',
-                                background: 'var(--bg-color)',
-                                border: '1px solid var(--border-color)',
-                                borderRadius: '8px',
-                                color: 'var(--text-secondary)',
-                                padding: '0.75rem',
-                                lineHeight: 1.6,
-                                marginBottom: '2rem'
-                            }}
+                            className="form-input"
+                            style={{ width: '100%', marginBottom: '2rem' }}
                         />
                     ) : (
-                        <p style={{ color: 'var(--text-secondary)', fontSize: '1rem', marginBottom: '2rem', lineHeight: 1.6 }}>
+                        <p style={{ color: 'var(--text-secondary)', fontSize: '1rem', marginBottom: '2rem', lineHeight: 1.6, padding: '0 20px' }}>
                             {displayProfile.bio}
                         </p>
                     )}
                 </div>
 
-                <div style={{ width: '100%', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem' }}>
+                <div style={{ width: '100%', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '1rem', background: 'var(--bg-color)', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
                         <Mail size={20} color="var(--accent)" />
                         <div style={{ textAlign: 'left', flex: 1 }}>
@@ -364,7 +342,7 @@ const Profile: React.FC = () => {
                                     style={{ width: '100%', background: 'transparent', border: 'none', color: '#e6edf3', fontSize: '0.95rem' }}
                                 />
                             ) : (
-                                <div style={{ fontSize: '0.95rem', color: '#e6edf3' }}>{displayProfile.email}</div>
+                                <div style={{ fontSize: '0.95rem', color: '#e6edf3', overflow: 'hidden', textOverflow: 'ellipsis' }}>{displayProfile.email}</div>
                             )}
                         </div>
                     </div>
