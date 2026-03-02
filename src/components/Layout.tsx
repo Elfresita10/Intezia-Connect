@@ -6,7 +6,7 @@ import { canViewAuditLog, canCreate } from '../utils/permissions';
 import { getOrInitDB } from '../db/db';
 import KeiaChat from './KeiaChat';
 import { NotificationService } from '../utils/NotificationService';
-import { Bell, BellOff } from 'lucide-react';
+
 import logo from '../assets/images/logo-app.png';
 
 const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -14,7 +14,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const navigate = useNavigate();
     const { user, logout } = useAuth();
     const [pendingReviewCount, setPendingReviewCount] = useState(0);
-    const [notifPermission, setNotifPermission] = useState<NotificationPermission>(NotificationService.getPermissionStatus());
+
 
     const isSupervisor = canCreate(user?.role);
 
@@ -50,15 +50,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         return () => clearInterval(interval);
     }, []);
 
-    const handleRequestNotifs = async () => {
-        const granted = await NotificationService.requestPermission();
-        setNotifPermission(NotificationService.getPermissionStatus());
-        if (granted) {
-            NotificationService.sendLocalNotification('¡Notificaciones Activadas!', {
-                body: 'Recibirás avisos de nuevos proyectos y recordatorios los viernes.'
-            });
-        }
-    };
+
 
     const getPageTitle = (path: string) => {
         if (path.includes('dashboard')) return 'Resumen';
