@@ -1,38 +1,43 @@
 import React, { useEffect, useState } from 'react';
-import { Trophy, Clock, CheckCircle2 } from 'lucide-react';
+import { Trophy, CheckCircle2, Clock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { getDb, Project } from '../db/db';
+import { getOrInitDB, Project } from '../db/db';
 
 const Dashboard: React.FC = () => {
     const navigate = useNavigate();
     const { user } = useAuth();
     const [stats, setStats] = useState({ projects: 0, education: 0 });
     const [latestProject, setLatestProject] = useState<Project | null>(null);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const fetchDashboardData = async () => {
             try {
-                const db = getDb();
-                const projCount = await db.exec({ sql: "SELECT count(*) as count FROM projects", returnValue: 'resultRows', rowMode: 'object' });
-                const eduCount = await db.exec({ sql: "SELECT count(*) as count FROM education WHERE status = 'Realizada'", returnValue: 'resultRows', rowMode: 'object' });
-                const recentProj = await db.exec({ sql: "SELECT * FROM projects WHERE status = 'En Progreso' ORDER BY id DESC LIMIT 1", returnValue: 'resultRows', rowMode: 'object' });
+                const db = await getOrInitDB();
+                const projCount = await db.exec({ sql: "SELECT count(*) as count FROM projects", returnValue: 'resultRows' });
+                const eduCount = await db.exec({ sql: "SELECT count(*) as count FROM education WHERE status = 'Realizada'", returnValue: 'resultRows' });
+                const recentProj = await db.exec({ sql: "SELECT * FROM projects WHERE status = 'En Progreso' ORDER BY id DESC LIMIT 1", returnValue: 'resultRows' });
 
                 setStats({
                     projects: projCount[0]?.count || 0,
                     education: eduCount[0]?.count || 0
                 });
 
-                if (recentProj.length > 0) {
+                if (recentProj && recentProj.length > 0) {
                     setLatestProject(recentProj[0] as unknown as Project);
                 }
             } catch (e) {
-                console.error("Error fetching dashboard data:", e);
+                console.error("Dashboard DB Error:", e);
+            } finally {
+                setLoading(false);
             }
         };
 
         fetchDashboardData();
     }, []);
+
+    if (loading) return <div className="skeleton" style={{ height: '400px', borderRadius: '20px' }}></div>;
 
     return (
         <div className="animate-fade-in" style={{ width: '100%' }}>
@@ -44,58 +49,54 @@ const Dashboard: React.FC = () => {
                 alignItems: 'center',
                 textAlign: 'center',
                 width: '100%',
-                maxWidth: '800px'
+                maxWidth: '800px',
+                padding: '2rem'
             }}>
-                <h2 className="text-truncate" style={{ fontSize: '1.8rem', marginBottom: '0.2rem', color: '#fff', fontWeight: 800, padding: '0 10px', width: '100%' }}>Hola, {user?.name.split(' ')[0] || 'Consultor'}</h2>
-                <p className="text-truncate" style={{ color: 'var(--accent)', fontWeight: 600, fontSize: '0.95rem', opacity: 0.9, marginBottom: '2rem', padding: '0 10px', width: '100%' }}>{user?.title || 'Consultor Intezia'}</p>
+                <h2 className="text-truncate" style={{ fontSize: '2rem', marginBottom: '0.5rem', color: '#fff', fontWeight: 800 }}>
+                    Hola, {user?.name.split(' ')[0] || 'Consultor'}
+                </h2>
+                <p style={{ color: 'var(--accent)', fontWeight: 600, fontSize: '1rem', marginBottom: '2rem' }}>
+                    {user?.title || 'Consultor Estratégico'}
+                </p>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.75rem', width: '100%' }}>
-                    <div className="glass-card" style={{ padding: '1.2rem 0.5rem', margin: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
-                            <CheckCircle2 size={16} color="#3fb950" /> Proyectos
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem', width: '100%' }}>
+                    <div className="glass-card stat-card" style={{ margin: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+                            <CheckCircle2 size={18} color="#3fb950" /> Proyectos
                         </div>
-                        <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#fff' }}>{stats.projects}</div>
+                        <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: '#fff' }}>{stats.projects}</div>
                     </div>
-                    <div className="glass-card" style={{ padding: '1.2rem 0.5rem', margin: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
-                            <Trophy size={16} color="#d29922" /> Certificados
+                    <div className="glass-card stat-card" style={{ margin: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+                            <Trophy size={18} color="#d29922" /> Certificados
                         </div>
-                        <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#fff' }}>{stats.education}</div>
+                        <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: '#fff' }}>{stats.education}</div>
                     </div>
                 </div>
             </div>
 
-            <div style={{ width: '100%', maxWidth: '800px', marginTop: '2.5rem' }}>
-                <div className="flex flex-wrap space-between align-center mb-1" style={{ gap: '12px' }}>
-                    <h3 className="section-title" style={{ marginBottom: 0, fontSize: '1.3rem', whiteSpace: 'nowrap' }}>Proyectos Activos</h3>
-                    <button className="btn" style={{ padding: '0.5rem 1rem', fontSize: '0.85rem', background: 'rgba(255,215,0,0.1)', color: 'var(--accent)', boxShadow: 'none', border: '1px solid rgba(255,215,0,0.2)' }} onClick={() => navigate('/projects')}>
-                        Ver todos
-                    </button>
+            <div style={{ width: '100%', maxWidth: '800px', marginTop: '3rem' }}>
+                <div className="flex space-between align-center mb-1">
+                    <h3 className="section-title" style={{ margin: 0 }}>Proyecto Reciente</h3>
+                    <button className="btn btn-secondary" onClick={() => navigate('/projects')}>Ver todos</button>
                 </div>
 
                 {latestProject ? (
-                    <div className="glass-card" style={{ width: '100%', margin: 0, cursor: 'pointer' }} onClick={() => navigate(`/projects/${latestProject.id}`)}>
-                        <div className="flex flex-wrap space-between align-center mb-1" style={{ gap: '12px' }}>
-                            <h3 className="text-truncate" style={{ margin: 0, fontSize: '1.2rem', maxWidth: '70%' }}>{latestProject.title}</h3>
-                            <span className="badge warning" style={{ whiteSpace: 'nowrap' }}>{latestProject.status}</span>
-                        </div>
-                        <p className="mb-2" style={{ color: 'var(--text-secondary)' }}>Cliente: {latestProject.client}</p>
+                    <div className="glass-card" style={{ cursor: 'pointer', borderLeft: '4px solid var(--accent)' }} onClick={() => navigate(`/projects/${latestProject.id}`)}>
+                        <h3 style={{ fontSize: '1.3rem', color: '#fff', marginBottom: '8px' }}>{latestProject.title}</h3>
+                        <p style={{ color: 'var(--text-secondary)', marginBottom: '20px' }}>Cliente: {latestProject.client}</p>
 
-                        <div className="flex align-center gap-2 mb-1" style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
-                            <Clock size={16} /> Entrega: {latestProject.dueDate}
+                        <div className="progress-container" style={{ height: '8px', marginBottom: '8px' }}>
+                            <div className="progress-bar" style={{ width: `${latestProject.progress}%` }}></div>
                         </div>
-
-                        <div className="progress-container" style={{ height: '10px', background: 'rgba(255,255,255,0.08)' }}>
-                            <div className="progress-bar" style={{ width: `${latestProject.progress}%`, background: 'linear-gradient(90deg, var(--accent) 0%, #fff 100%)' }}></div>
-                        </div>
-                        <div className="flex space-between mt-1" style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                            <span>Progreso</span>
+                        <div className="flex space-between" style={{ fontSize: '0.85rem' }}>
+                            <span style={{ color: 'var(--text-secondary)' }}>Progreso actual</span>
                             <span style={{ color: 'var(--accent)', fontWeight: 'bold' }}>{latestProject.progress}%</span>
                         </div>
                     </div>
                 ) : (
-                    <div className="glass-card" style={{ textAlign: 'center', opacity: 0.6 }}>
-                        No hay proyectos activos recientemente.
+                    <div className="glass-card" style={{ textAlign: 'center', opacity: 0.6, padding: '3rem' }}>
+                        No hay proyectos activos registrados.
                     </div>
                 )}
             </div>
