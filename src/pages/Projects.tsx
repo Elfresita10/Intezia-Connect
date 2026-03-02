@@ -3,9 +3,11 @@ import { Plus, Search, Calendar, Edit2, Trash2, CheckCircle2, Clock, AlertCircle
 import { useAuth } from '../context/AuthContext';
 import { getOrInitDB, Project, logAction } from '../db/db';
 import { canCreate, canEdit, canDelete } from '../utils/permissions';
+import { useAlert } from '../context/AlertContext';
 
 const Projects: React.FC = () => {
     const { user } = useAuth();
+    const { showAlert, showConfirm } = useAlert();
     const [projects, setProjects] = useState<Project[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -31,6 +33,7 @@ const Projects: React.FC = () => {
             setProjects(result || []);
         } catch (error) {
             console.error('Fetch Projects failed:', error);
+            showAlert('No se pudieron cargar los proyectos.', 'error');
         } finally {
             setLoading(false);
         }
@@ -62,20 +65,26 @@ const Projects: React.FC = () => {
 
     const handleDelete = async (id: number, title: string) => {
         if (!canDelete(user?.role)) return;
-        if (window.confirm(`¿Estás seguro de que deseas eliminar el proyecto "${title}"?`)) {
-            try {
-                const db = await getOrInitDB();
-                await db.exec({
-                    sql: 'DELETE FROM projects WHERE id = ?',
-                    bind: [id]
-                });
-                await logAction(user?.name || 'Sistema', 'Eliminó Proyecto', 'Proyectos', `Eliminó: ${title}`);
-                fetchProjects();
-            } catch (error) {
-                console.error('Delete failed:', error);
-                alert('Error al eliminar el proyecto.');
-            }
-        }
+
+        showConfirm(
+            `¿Estás seguro de que deseas eliminar el proyecto "${title}"?`,
+            async () => {
+                try {
+                    const db = await getOrInitDB();
+                    await db.exec({
+                        sql: 'DELETE FROM projects WHERE id = ?',
+                        bind: [id]
+                    });
+                    await logAction(user?.name || 'Sistema', 'Eliminó Proyecto', 'Proyectos', `Eliminó: ${title}`);
+                    showAlert('Proyecto eliminado correctamente.', 'success');
+                    fetchProjects();
+                } catch (error) {
+                    console.error('Delete failed:', error);
+                    showAlert('Error al eliminar el proyecto.', 'error');
+                }
+            },
+            'Eliminar Proyecto'
+        );
     };
 
     const handleSave = async (e: React.FormEvent) => {
@@ -89,6 +98,7 @@ const Projects: React.FC = () => {
                     bind: [formData.title, formData.client, formData.dueDate, formData.status, formData.progress, editingProject.id]
                 });
                 await logAction(user?.name || 'Sistema', 'Actualizó Proyecto', 'Proyectos', `Editó: ${formData.title}`);
+                showAlert('Proyecto actualizado.', 'success');
             } else {
                 if (!canCreate(user?.role)) return;
                 await db.exec({
@@ -96,13 +106,13 @@ const Projects: React.FC = () => {
                     bind: [formData.title, formData.client, formData.dueDate, formData.status, formData.progress]
                 });
                 await logAction(user?.name || 'Sistema', 'Creó Proyecto', 'Proyectos', `Creó: ${formData.title}`);
+                showAlert('Proyecto creado con éxito.', 'success');
             }
             setIsModalOpen(false);
             fetchProjects();
         } catch (e) {
             console.error('Save error:', e);
-            const msg = e instanceof Error ? e.message : 'Error desconocido';
-            alert('Error al guardar datos: ' + msg);
+            showAlert('Error al guardar los cambios.', 'error');
         }
     };
 
